@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe",
-  "release_notes": "تصميم عصري جديد بالكامل بدون حواف مزعجة، واجهة سلسة ومريحة للعين، وتحسينات في الأداء والتحديث التلقائي."
+  "release_notes": "إضافة شريط تقدم تفاعلي ونسبة مئوية رقمية (X%) مع حجم الملف بالميجابايت أثناء التحديث، وتصميم عصري فائق السلاسة."
 }

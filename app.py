@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Arabic Keyboard Fixer (فَصِيح) - Version 1.1.0
-Modern Seamless UI/UX Edition (Clean, Borderless, Premium Dark Theme)
+Arabic Keyboard Fixer (فَصِيح) - Version 1.2.0
+Features:
+- Real-Time Download Percentage & Progress Bar (نسبة مئوية رقمية وشريط تقدم دقيق)
+- Modern Seamless UI/UX Edition (Clean, Borderless, Premium Dark Theme)
+- Bento-Grid Analytics (ساعات، دقائق، ثواني)
+- Visual Keycap Badges: [Ctrl+Shift+A], [Alt+Q], [F9]
+- Auto-Updater with live MB tracking
 """
 
 import sys
@@ -20,11 +25,11 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.1.0"
+CURRENT_VERSION = "1.2.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.1.0'
+    myappid = 'faseeh.keyboard.fixer.v1.2.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
@@ -251,17 +256,16 @@ class KeyboardFixerApp:
         self.root.geometry("560x610")
         self.root.resizable(False, False)
 
-        # Ultra-Clean Modern Palette (No harsh borders, smooth flat cards)
-        self.COLOR_BG = "#0B1120"          # Deep Canvas Dark
-        self.COLOR_SURFACE = "#1E293B"     # Card Surface
-        self.COLOR_SURFACE_LIGHT = "#334155" # Input / Hover Surface
-        self.COLOR_TEXT_MAIN = "#F8FAFC"   # Primary Typography
-        self.COLOR_TEXT_MUTED = "#94A3B8"  # Secondary Typography
-        self.COLOR_PRIMARY = "#3B82F6"     # Modern Vibrant Blue
+        self.COLOR_BG = "#0B1120"
+        self.COLOR_SURFACE = "#1E293B"
+        self.COLOR_SURFACE_LIGHT = "#334155"
+        self.COLOR_TEXT_MAIN = "#F8FAFC"
+        self.COLOR_TEXT_MUTED = "#94A3B8"
+        self.COLOR_PRIMARY = "#3B82F6"
         self.COLOR_PRIMARY_HOVER = "#2563EB"
-        self.COLOR_CYAN = "#38BDF8"        # Soft Cyan
-        self.COLOR_EMERALD = "#10B981"     # Emerald Green
-        self.COLOR_INDIGO = "#818CF8"      # Soft Indigo
+        self.COLOR_CYAN = "#38BDF8"
+        self.COLOR_EMERALD = "#10B981"
+        self.COLOR_INDIGO = "#818CF8"
 
         self.user_data = load_user_data()
         self.rescues_count = self.user_data.get("rescues_count", 0)
@@ -303,11 +307,10 @@ class KeyboardFixerApp:
     def _setup_ui(self):
         self.root.configure(bg=self.COLOR_BG)
 
-        # ----------------- 1. MINIMALIST SEAMLESS HEADER -----------------
+        # ----------------- 1. HEADER -----------------
         header = tk.Frame(self.root, bg=self.COLOR_BG, padx=26, pady=16)
         header.pack(fill=tk.X)
 
-        # Live Status Chip (Left)
         self.status_chip = tk.Label(
             header,
             text="● نَشِط بالخلفية",
@@ -320,7 +323,6 @@ class KeyboardFixerApp:
         )
         self.status_chip.pack(side=tk.LEFT)
 
-        # Brand Info (Right)
         brand_box = tk.Frame(header, bg=self.COLOR_BG)
         brand_box.pack(side=tk.RIGHT)
 
@@ -358,7 +360,7 @@ class KeyboardFixerApp:
         main_box = tk.Frame(self.root, bg=self.COLOR_BG, padx=26, pady=4)
         main_box.pack(fill=tk.BOTH, expand=True)
 
-        # ----------------- 3. BENTO STATS CARDS (FLAT & CLEAN) -----------------
+        # ----------------- 3. BENTO STATS CARDS -----------------
         stats_frame = tk.Frame(main_box, bg=self.COLOR_BG)
         stats_frame.pack(fill=tk.X, pady=(0, 16))
 
@@ -377,7 +379,7 @@ class KeyboardFixerApp:
         self.c1_val.pack(anchor="center", pady=(4, 2))
         tk.Label(c1, text="تصحيح فوري دون مسح", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
-        # Card 2: Time Saved (Hours, Minutes, Seconds)
+        # Card 2: Time Saved
         c2 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=16, pady=14)
         c2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(8, 0))
 
@@ -392,7 +394,7 @@ class KeyboardFixerApp:
         self.c2_val.pack(anchor="center", pady=(6, 2))
         tk.Label(c2, text="ساعات • دقائق • ثواني", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
-        # ----------------- 4. SEAMLESS SHORTCUT PILLS -----------------
+        # ----------------- 4. SHORTCUT PILLS -----------------
         shortcuts_card = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=14)
         shortcuts_card.pack(fill=tk.X, pady=(0, 16))
 
@@ -407,19 +409,16 @@ class KeyboardFixerApp:
         pills_row = tk.Frame(shortcuts_card, bg=self.COLOR_SURFACE)
         pills_row.pack(fill=tk.X)
 
-        # Pill 1
         p1 = tk.Label(pills_row, text="Ctrl + Shift + A", font=("Segoe UI", 10, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_SURFACE_LIGHT, padx=12, pady=5)
         p1.pack(side=tk.RIGHT, padx=4)
 
-        # Pill 2
         p2 = tk.Label(pills_row, text="Alt + Q", font=("Segoe UI", 10, "bold"), fg=self.COLOR_INDIGO, bg=self.COLOR_SURFACE_LIGHT, padx=12, pady=5)
         p2.pack(side=tk.RIGHT, padx=4)
 
-        # Pill 3
         p3 = tk.Label(pills_row, text="F9", font=("Segoe UI", 10, "bold"), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE_LIGHT, padx=12, pady=5)
         p3.pack(side=tk.RIGHT, padx=4)
 
-        # ----------------- 5. MODERN TEST FIELD -----------------
+        # ----------------- 5. TEST ZONE -----------------
         test_card = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=14)
         test_card.pack(fill=tk.X, pady=(0, 16))
 
@@ -480,7 +479,7 @@ class KeyboardFixerApp:
         )
         clear_btn.pack(side=tk.LEFT)
 
-        # ----------------- 6. CLEAN SETTINGS STRIP -----------------
+        # ----------------- 6. SETTINGS STRIP -----------------
         settings_strip = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=10)
         settings_strip.pack(fill=tk.X, pady=(0, 16))
 
@@ -500,7 +499,7 @@ class KeyboardFixerApp:
         )
         autostart_chk.pack(anchor="w")
 
-        # ----------------- 7. SEAMLESS BOTTOM CONTROLS -----------------
+        # ----------------- 7. BOTTOM BAR -----------------
         bottom_bar = tk.Frame(main_box, bg=self.COLOR_BG)
         bottom_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
@@ -656,6 +655,7 @@ class KeyboardFixerApp:
         finally:
             self.is_processing = False
 
+    # ----------------- REAL-TIME AUTO-UPDATER WITH PROGRESS BAR -----------------
     def _check_update_task(self, manual=False):
         try:
             if manual:
@@ -689,8 +689,8 @@ class KeyboardFixerApp:
 
     def _prompt_update_modal(self, new_ver, dl_url, notes):
         modal = tk.Toplevel(self.root)
-        modal.title(f"تحديث جديد: v{new_ver}")
-        modal.geometry("450x260")
+        modal.title(f"تحديث جديد متاح: v{new_ver}")
+        modal.geometry("460x300")
         modal.resizable(False, False)
         modal.configure(bg=self.COLOR_BG)
         modal.transient(self.root)
@@ -700,35 +700,82 @@ class KeyboardFixerApp:
             modal, text=f"🎉 يتوفر إصدار جديد من فَصِيح (v{new_ver})",
             font=("Segoe UI", 12, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_BG
         )
-        head.pack(pady=(18, 8))
+        head.pack(pady=(16, 6))
 
         notes_box = tk.Label(
             modal, text=f"ما الجديد في هذا التحديث:\n{notes}",
             font=("Segoe UI", 9), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_BG,
-            wraplength=390, justify=tk.RIGHT
+            wraplength=410, justify=tk.RIGHT
         )
-        notes_box.pack(pady=(0, 16), padx=20)
+        notes_box.pack(pady=(0, 12), padx=20)
 
-        status_lbl = tk.Label(modal, text="", font=("Segoe UI", 9), fg=self.COLOR_EMERALD, bg=self.COLOR_BG)
-        status_lbl.pack(pady=(0, 10))
+        # Live Progress Display Frame
+        prog_frame = tk.Frame(modal, bg=self.COLOR_BG)
+        prog_frame.pack(fill=tk.X, padx=25, pady=(0, 10))
+
+        status_lbl = tk.Label(
+            prog_frame, text="", font=("Segoe UI", 9, "bold"),
+            fg=self.COLOR_TEXT_MAIN, bg=self.COLOR_BG
+        )
+        status_lbl.pack(pady=(0, 6))
+
+        # Modern Progress Bar
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure(
+            "Faseeh.Horizontal.TProgressbar",
+            troughcolor="#1E293B",
+            background="#3B82F6",
+            thickness=12,
+            relief=tk.FLAT
+        )
+
+        prog_bar = ttk.Progressbar(
+            prog_frame,
+            style="Faseeh.Horizontal.TProgressbar",
+            orient="horizontal",
+            mode="determinate",
+            maximum=100
+        )
+        # Initially hidden until download starts
+        prog_bar.pack_forget()
 
         btn_row = tk.Frame(modal, bg=self.COLOR_BG)
         btn_row.pack(side=tk.BOTTOM, pady=16)
 
         def _start_download():
-            status_lbl.config(text="⏳ جاري تحميل وتثبيت التحديث...")
             dl_btn.config(state=tk.DISABLED)
+            prog_bar.pack(fill=tk.X, pady=(4, 0))
+            status_lbl.config(text="⚡ جاري الاتصال وبدء التحميل...")
 
             def _dl_worker():
                 try:
                     temp_dir = os.environ.get("TEMP", ".")
                     new_file = os.path.join(temp_dir, f"Faseeh_{new_ver}.exe")
-                    urllib.request.urlretrieve(dl_url, new_file)
-                    status_lbl.config(text="✅ اكتمل التحميل! جاري التثبيت التلقائي...")
-                    time.sleep(0.8)
+
+                    def _reporthook(block_num, block_size, total_size):
+                        if total_size > 0:
+                            downloaded = block_num * block_size
+                            percent = min(100, int(downloaded * 100 / total_size))
+                            mb_down = downloaded / (1024 * 1024)
+                            mb_total = total_size / (1024 * 1024)
+
+                            modal.after(0, lambda: _update_progress(percent, mb_down, mb_total))
+
+                    def _update_progress(percent, mb_down, mb_total):
+                        prog_bar['value'] = percent
+                        status_lbl.config(
+                            text=f"⚡ جاري التحميل: {percent}%  ({mb_down:.1f} MB من {mb_total:.1f} MB)",
+                            fg=self.COLOR_CYAN
+                        )
+
+                    urllib.request.urlretrieve(dl_url, new_file, reporthook=_reporthook)
+
+                    status_lbl.config(text="✅ اكتمل التحميل بنسبة 100%! جاري التثبيت...", fg=self.COLOR_EMERALD)
+                    time.sleep(0.9)
                     apply_update_and_restart(new_file)
                 except Exception as e:
-                    status_lbl.config(text=f"❌ تعذر التحميل: {e}")
+                    status_lbl.config(text=f"❌ تعذر التحميل: {e}", fg="#EF4444")
                     dl_btn.config(state=tk.NORMAL)
 
             threading.Thread(target=_dl_worker, daemon=True).start()
@@ -742,7 +789,7 @@ class KeyboardFixerApp:
         dl_btn.pack(side=tk.LEFT, padx=6)
 
         cancel_btn = tk.Button(
-            btn_row, text="لاحقاً",
+            btn_row, text="إلغاء",
             font=("Segoe UI", 9), bg=self.COLOR_SURFACE, fg=self.COLOR_TEXT_MUTED,
             relief=tk.FLAT, padx=12, pady=6, cursor="hand2",
             command=modal.destroy
