@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe",
-  "release_notes": "حركة انزلاق جانبية أنيقة للرسالة (Slide-in من اليمين و Slide-out)، تبقى لمدة 5 ثوانٍ، مع زر (✕) للإغلاق الفوري السريع."
+  "release_notes": "دعم النصوص المختلطة والذكاء في تحويل الأحرف والأزرار المعكوسة (مثل تحويل 'pvt ي' إلى 'حرف D') وانزلاق جانبي سلس للإشعار وبقاء 5 ثوانٍ مع زر ✕."
 }

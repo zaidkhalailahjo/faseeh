@@ -25,11 +25,11 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.4.0"
+CURRENT_VERSION = "1.5.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.4.0'
+    myappid = 'faseeh.keyboard.fixer.v1.5.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass

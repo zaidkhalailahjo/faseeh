@@ -118,6 +118,27 @@ def is_mostly_arabic(text: str) -> bool:
     return ar_count > en_count
 
 
+import re
+
+def convert_token_ar_to_en(token: str) -> str:
+    """Convert an Arabic token or character to English keyboard layout."""
+    res = []
+    i = 0
+    n = len(token)
+    while i < n:
+        if i + 1 < n and token[i:i+2] in AR_TO_EN:
+            res.append(AR_TO_EN[token[i:i+2]])
+            i += 2
+        else:
+            ch = token[i]
+            if ch in '.,!?:;"\'-()[]{}':
+                res.append(ch)
+            else:
+                res.append(AR_TO_EN.get(ch, ch))
+            i += 1
+    return ''.join(res)
+
+
 def convert_en_to_ar(text: str) -> str:
     """Convert text typed with English layout to Arabic layout."""
     result = []
@@ -128,32 +149,45 @@ def convert_en_to_ar(text: str) -> str:
 
 def convert_ar_to_en(text: str) -> str:
     """Convert text typed with Arabic layout to English layout."""
-    result = []
-    i = 0
-    n = len(text)
-    while i < n:
-        # Check two-character ligatures like لا, لإ, لأ, لآ
-        if i + 1 < n and text[i:i+2] in AR_TO_EN:
-            result.append(AR_TO_EN[text[i:i+2]])
-            i += 2
-        else:
-            ch = text[i]
-            result.append(AR_TO_EN.get(ch, ch))
-            i += 1
-    return ''.join(result)
+    return convert_token_ar_to_en(text)
 
 
 def fix_text(text: str) -> str:
     """
-    Intelligently detects whether the text is English or Arabic
-    and converts to the opposite layout.
+    Intelligently converts text typed with incorrect keyboard layout.
+    Supports mixed sentences (e.g. English gibberish with accidental Arabic keys
+    such as ';dt phg; s,t kj;gl uk pvt ي i,i pvt' -> 'كيف حالك سوف نتكلم عن حرف D هوه حرف').
     """
     if not text:
         return text
-    if is_mostly_arabic(text):
-        return convert_ar_to_en(text)
-    else:
-        return convert_en_to_ar(text)
+
+    mostly_ar = is_mostly_arabic(text)
+    tokens = re.split(r'(\s+)', text)
+    converted_tokens = []
+
+    for token in tokens:
+        if not token or token.isspace():
+            converted_tokens.append(token)
+            continue
+
+        if mostly_ar:
+            token_is_ar = any('\u0600' <= c <= '\u06FF' or c in '،؛؟' for c in token)
+            if token_is_ar:
+                converted_tokens.append(convert_token_ar_to_en(token))
+            else:
+                converted_tokens.append(''.join(EN_TO_AR.get(c, c) for c in token))
+        else:
+            token_is_ar = any('\u0600' <= c <= '\u06FF' or c in '،؛؟' for c in token)
+            if token_is_ar:
+                converted_word = convert_token_ar_to_en(token)
+                stripped = token.strip('.,!?:;"\'-()[]{}')
+                if len(stripped) == 1 and stripped.isalpha():
+                    converted_word = ''.join(c.upper() if c.isalpha() else c for c in converted_word)
+                converted_tokens.append(converted_word)
+            else:
+                converted_tokens.append(''.join(EN_TO_AR.get(c, c) for c in token))
+
+    return ''.join(converted_tokens)
 
 
 if __name__ == '__main__':
