@@ -393,21 +393,23 @@ class FloatingToast:
 
 class AutoDetectBubble:
     _active = None
-    _tab_hook = None
+    _hooks = []
 
     @staticmethod
     def show(word, candidate, on_accept_callback):
-        # Register suppress hook for Tab so OS NEVER navigates focus or buttons!
-        AutoDetectBubble._clear_tab_hook()
+        # Register suppress hooks for Shift (Right Shift, Left Shift, Shift) and Tab
+        AutoDetectBubble._clear_hooks()
 
-        def _on_tab_pressed():
+        def _on_accepted():
             AutoDetectBubble.hide()
             on_accept_callback()
 
-        try:
-            AutoDetectBubble._tab_hook = keyboard.add_hotkey('tab', _on_tab_pressed, suppress=True)
-        except Exception:
-            pass
+        for k in ['right shift', 'left shift', 'shift', 'tab']:
+            try:
+                hk = keyboard.add_hotkey(k, _on_accepted, suppress=True)
+                AutoDetectBubble._hooks.append(hk)
+            except Exception:
+                pass
 
         def _run():
             try:
@@ -426,7 +428,7 @@ class AutoDetectBubble:
 
                 sw = bubble.winfo_screenwidth()
                 sh = bubble.winfo_screenheight()
-                w = 340
+                w = 350
                 h = 52
                 x = sw - w - 24
                 y = sh - h - 160
@@ -453,18 +455,18 @@ class AutoDetectBubble:
                 left_box = tk.Frame(inner, bg="#0F172A")
                 left_box.pack(side=tk.LEFT)
 
-                tab_btn = tk.Label(
+                accept_btn = tk.Label(
                     left_box,
-                    text="اضغط Tab للتطبيق",
+                    text="اضغط Shift للتطبيق ⇧",
                     font=("Segoe UI", 8, "bold"),
                     fg="#F8FAFC",
                     bg="#1E293B",
-                    padx=7,
-                    pady=2,
+                    padx=8,
+                    pady=3,
                     cursor="hand2"
                 )
-                tab_btn.pack(side=tk.LEFT)
-                tab_btn.bind("<Button-1>", lambda e: (AutoDetectBubble.hide(), on_accept_callback()))
+                accept_btn.pack(side=tk.LEFT)
+                accept_btn.bind("<Button-1>", lambda e: (AutoDetectBubble.hide(), on_accept_callback()))
 
                 bubble.after(3500, lambda: AutoDetectBubble.hide())
                 bubble.mainloop()
@@ -474,17 +476,17 @@ class AutoDetectBubble:
         threading.Thread(target=_run, daemon=True).start()
 
     @staticmethod
-    def _clear_tab_hook():
-        if AutoDetectBubble._tab_hook:
+    def _clear_hooks():
+        for hk in AutoDetectBubble._hooks:
             try:
-                keyboard.remove_hotkey(AutoDetectBubble._tab_hook)
+                keyboard.remove_hotkey(hk)
             except Exception:
                 pass
-            AutoDetectBubble._tab_hook = None
+        AutoDetectBubble._hooks = []
 
     @staticmethod
     def hide():
-        AutoDetectBubble._clear_tab_hook()
+        AutoDetectBubble._clear_hooks()
         if AutoDetectBubble._active:
             try:
                 AutoDetectBubble._active.destroy()
@@ -969,6 +971,9 @@ class KeyboardFixerApp:
                     if cand and cand != typed:
                         self._last_detected_pair = (typed, cand)
                         AutoDetectBubble.show(typed, cand, self._accept_autodetect)
+            elif name in ['shift', 'left shift', 'right shift', 'tab']:
+                if self._last_detected_pair and AutoDetectBubble._active:
+                    self._accept_autodetect()
             elif name in ['escape', 'esc']:
                 AutoDetectBubble.hide()
             elif name == 'backspace':
