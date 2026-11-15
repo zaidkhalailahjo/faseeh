@@ -25,11 +25,11 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.2.0"
+CURRENT_VERSION = "1.3.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.2.0'
+    myappid = 'faseeh.keyboard.fixer.v1.3.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
@@ -207,41 +207,148 @@ def get_clipboard_text(timeout=0.35):
 
 
 class FloatingToast:
+    _active_toast = None
+
     @staticmethod
     def show(message, title="فَصِيح ✨"):
         def _run():
             try:
+                # Close any previous toast cleanly
+                if FloatingToast._active_toast:
+                    try:
+                        FloatingToast._active_toast.destroy()
+                    except Exception:
+                        pass
+
                 toast = tk.Tk()
+                FloatingToast._active_toast = toast
                 toast.overrideredirect(True)
                 toast.attributes("-topmost", True)
-                toast.attributes("-alpha", 0.96)
+                toast.attributes("-alpha", 0.0)  # Starts transparent for smooth fade-in
                 toast.configure(bg="#0F172A")
 
                 sw = toast.winfo_screenwidth()
                 sh = toast.winfo_screenheight()
 
-                width = 330
-                height = 80
-                x = sw - width - 25
+                width = 350
+                height = 92
+                x = sw - width - 24
                 y = sh - height - 60
                 toast.geometry(f"{width}x{height}+{x}+{y}")
 
-                inner = tk.Frame(toast, bg="#0F172A", padx=14, pady=10)
+                # Sleek border card
+                border_frame = tk.Frame(toast, bg="#334155", padx=1, pady=1)
+                border_frame.pack(fill=tk.BOTH, expand=True)
+
+                inner = tk.Frame(border_frame, bg="#0F172A", padx=14, pady=9)
                 inner.pack(fill=tk.BOTH, expand=True)
 
+                # Header: Close button on Left, Title on Right
+                top_bar = tk.Frame(inner, bg="#0F172A")
+                top_bar.pack(fill=tk.X, pady=(0, 4))
+
+                # Quick Dismiss Button (✕)
+                close_btn = tk.Label(
+                    top_bar,
+                    text="✕",
+                    font=("Segoe UI", 9, "bold"),
+                    fg="#94A3B8",
+                    bg="#0F172A",
+                    cursor="hand2",
+                    padx=6,
+                    pady=1
+                )
+                close_btn.pack(side=tk.LEFT)
+
+                # Cyan Title
                 title_lbl = tk.Label(
-                    inner, text=title, font=("Segoe UI", 10, "bold"),
-                    fg="#38BDF8", bg="#0F172A"
+                    top_bar,
+                    text=title,
+                    font=("Segoe UI", 10, "bold"),
+                    fg="#38BDF8",
+                    bg="#0F172A"
                 )
-                title_lbl.pack(anchor="e")
+                title_lbl.pack(side=tk.RIGHT)
 
+                # Message Body
                 msg_lbl = tk.Label(
-                    inner, text=message, font=("Segoe UI", 9),
-                    fg="#F8FAFC", bg="#0F172A", wraplength=300, justify=tk.RIGHT
+                    inner,
+                    text=message,
+                    font=("Segoe UI", 9),
+                    fg="#F8FAFC",
+                    bg="#0F172A",
+                    wraplength=315,
+                    justify=tk.RIGHT
                 )
-                msg_lbl.pack(anchor="e", pady=(2, 0))
+                msg_lbl.pack(fill=tk.BOTH, expand=True, anchor="e")
 
-                toast.after(2300, toast.destroy)
+                # Animation State & Lifecycle
+                anim_state = {"alpha": 0.0, "closing": False, "timer_id": None}
+
+                def _fade_out():
+                    if anim_state["closing"] and anim_state["alpha"] <= 0.05:
+                        return
+                    anim_state["closing"] = True
+
+                    if anim_state["timer_id"]:
+                        try:
+                            toast.after_cancel(anim_state["timer_id"])
+                        except Exception:
+                            pass
+
+                    if anim_state["alpha"] > 0.08:
+                        anim_state["alpha"] -= 0.12
+                        if anim_state["alpha"] < 0:
+                            anim_state["alpha"] = 0
+                        try:
+                            toast.attributes("-alpha", anim_state["alpha"])
+                            toast.after(16, _fade_out)
+                        except Exception:
+                            try:
+                                toast.destroy()
+                            except Exception:
+                                pass
+                    else:
+                        try:
+                            toast.destroy()
+                        except Exception:
+                            pass
+
+                def _fade_in():
+                    if anim_state["closing"]:
+                        return
+                    if anim_state["alpha"] < 0.96:
+                        anim_state["alpha"] += 0.08
+                        if anim_state["alpha"] > 0.96:
+                            anim_state["alpha"] = 0.96
+                        try:
+                            toast.attributes("-alpha", anim_state["alpha"])
+                            toast.after(16, _fade_in)
+                        except Exception:
+                            pass
+                    else:
+                        # Stays for 5 seconds (5000ms), then smoothly fades out
+                        try:
+                            anim_state["timer_id"] = toast.after(5000, _fade_out)
+                        except Exception:
+                            pass
+
+                # Close Button Hover and Click Effects
+                def _on_hover_in(e):
+                    close_btn.configure(fg="#EF4444", bg="#1E293B")
+
+                def _on_hover_out(e):
+                    close_btn.configure(fg="#94A3B8", bg="#0F172A")
+
+                def _on_click_close(e):
+                    _fade_out()
+
+                close_btn.bind("<Enter>", _on_hover_in)
+                close_btn.bind("<Leave>", _on_hover_out)
+                close_btn.bind("<Button-1>", _on_click_close)
+
+                # Launch smooth fade-in
+                toast.after(10, _fade_in)
                 toast.mainloop()
             except Exception:
                 pass
