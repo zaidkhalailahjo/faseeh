@@ -1,14 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Arabic Keyboard Fixer (فَصِيح) - Version 4.0 Auto-Updater & Ultra UI Edition
-Features:
-- Seamless In-App Auto-Updater (Check, Download & Swap EXE)
-- Premium Dark Modern Bento-Grid UI
-- Exact Time Breakdown (ساعات، دقائق، ثواني)
-- Sleek Keycap Badges: [Ctrl+Shift+A], [Alt+Q], [F9]
-- Persistent AppData storage
-- Windows Startup integration with toggle
-- Native Windows keyboard hook & sound
+Arabic Keyboard Fixer (فَصِيح) - Version 1.1.0
+Modern Seamless UI/UX Edition (Clean, Borderless, Premium Dark Theme)
 """
 
 import sys
@@ -27,17 +20,15 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.0.0"
+CURRENT_VERSION = "1.1.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 
-# Set Windows AppUserModelID for dedicated Taskbar icon
 try:
-    myappid = 'faseeh.keyboard.fixer.v4'
+    myappid = 'faseeh.keyboard.fixer.v1.1.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
 
-# Native Windows API setup
 user32 = ctypes.windll.user32
 VK_CONTROL = 0x11
 VK_SHIFT = 0x10
@@ -135,7 +126,6 @@ def format_time_saved(seconds):
 
 
 def parse_version(v_str):
-    """Convert version string like '1.0.5' into comparable tuple (1, 0, 5)."""
     try:
         clean = v_str.strip().lstrip("vV")
         return tuple(map(int, clean.split(".")))
@@ -144,7 +134,6 @@ def parse_version(v_str):
 
 
 def apply_update_and_restart(new_exe_path):
-    """Seamlessly replaces the current running EXE with the new EXE and restarts."""
     target_exe = sys.executable
     if not target_exe.lower().endswith(".exe"):
         target_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dist", "Faseeh-ArabicKeyFix.exe")
@@ -220,8 +209,8 @@ class FloatingToast:
                 toast = tk.Tk()
                 toast.overrideredirect(True)
                 toast.attributes("-topmost", True)
-                toast.attributes("-alpha", 0.95)
-                toast.configure(bg="#0B0F19")
+                toast.attributes("-alpha", 0.96)
+                toast.configure(bg="#0F172A")
 
                 sw = toast.winfo_screenwidth()
                 sh = toast.winfo_screenheight()
@@ -232,21 +221,18 @@ class FloatingToast:
                 y = sh - height - 60
                 toast.geometry(f"{width}x{height}+{x}+{y}")
 
-                border_frame = tk.Frame(toast, bg="#1E293B", padx=1, pady=1)
-                border_frame.pack(fill=tk.BOTH, expand=True)
-
-                inner = tk.Frame(border_frame, bg="#0B0F19", padx=12, pady=8)
+                inner = tk.Frame(toast, bg="#0F172A", padx=14, pady=10)
                 inner.pack(fill=tk.BOTH, expand=True)
 
                 title_lbl = tk.Label(
                     inner, text=title, font=("Segoe UI", 10, "bold"),
-                    fg="#38BDF8", bg="#0B0F19"
+                    fg="#38BDF8", bg="#0F172A"
                 )
                 title_lbl.pack(anchor="e")
 
                 msg_lbl = tk.Label(
                     inner, text=message, font=("Segoe UI", 9),
-                    fg="#F8FAFC", bg="#0B0F19", wraplength=300, justify=tk.RIGHT
+                    fg="#F8FAFC", bg="#0F172A", wraplength=300, justify=tk.RIGHT
                 )
                 msg_lbl.pack(anchor="e", pady=(2, 0))
 
@@ -262,19 +248,20 @@ class KeyboardFixerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("فَصِيح - مصحح الكيبورد الذكي")
-        self.root.geometry("580x640")
+        self.root.geometry("560x610")
         self.root.resizable(False, False)
 
-        # Theme Colors
-        self.BG_MAIN = "#0B0F19"
-        self.BG_CARD = "#131C2E"
-        self.BG_CARD_SUB = "#1B273F"
-        self.BORDER_COLOR = "#25334D"
-        self.TEXT_PRIMARY = "#FFFFFF"
-        self.TEXT_SECONDARY = "#94A3B8"
-        self.ACCENT_BLUE = "#3B82F6"
-        self.ACCENT_CYAN = "#38BDF8"
-        self.ACCENT_GREEN = "#10B981"
+        # Ultra-Clean Modern Palette (No harsh borders, smooth flat cards)
+        self.COLOR_BG = "#0B1120"          # Deep Canvas Dark
+        self.COLOR_SURFACE = "#1E293B"     # Card Surface
+        self.COLOR_SURFACE_LIGHT = "#334155" # Input / Hover Surface
+        self.COLOR_TEXT_MAIN = "#F8FAFC"   # Primary Typography
+        self.COLOR_TEXT_MUTED = "#94A3B8"  # Secondary Typography
+        self.COLOR_PRIMARY = "#3B82F6"     # Modern Vibrant Blue
+        self.COLOR_PRIMARY_HOVER = "#2563EB"
+        self.COLOR_CYAN = "#38BDF8"        # Soft Cyan
+        self.COLOR_EMERALD = "#10B981"     # Emerald Green
+        self.COLOR_INDIGO = "#818CF8"      # Soft Indigo
 
         self.user_data = load_user_data()
         self.rescues_count = self.user_data.get("rescues_count", 0)
@@ -291,7 +278,6 @@ class KeyboardFixerApp:
         if self.user_data.get("autostart", True) and not is_autostart_enabled():
             set_autostart(True)
 
-        # Silent background update check after 4 seconds
         self.root.after(4000, lambda: threading.Thread(target=self._check_update_task, args=(False,), daemon=True).start())
 
     def _apply_icons(self):
@@ -315,257 +301,250 @@ class KeyboardFixerApp:
             self.logo_photo = None
 
     def _setup_ui(self):
-        self.root.configure(bg=self.BG_MAIN)
+        self.root.configure(bg=self.COLOR_BG)
 
-        # ----------------- 1. HEADER -----------------
-        header = tk.Frame(self.root, bg=self.BG_CARD, padx=22, pady=14)
+        # ----------------- 1. MINIMALIST SEAMLESS HEADER -----------------
+        header = tk.Frame(self.root, bg=self.COLOR_BG, padx=26, pady=16)
         header.pack(fill=tk.X)
 
-        sep = tk.Frame(self.root, bg=self.BORDER_COLOR, height=1)
-        sep.pack(fill=tk.X)
-
-        self.status_badge = tk.Label(
+        # Live Status Chip (Left)
+        self.status_chip = tk.Label(
             header,
-            text="● نَشِط في الخلفية",
+            text="● نَشِط بالخلفية",
             font=("Segoe UI", 9, "bold"),
-            fg=self.ACCENT_GREEN,
+            fg=self.COLOR_EMERALD,
             bg="#064E3B",
-            padx=10,
-            pady=4
+            padx=12,
+            pady=5,
+            relief=tk.FLAT
         )
-        self.status_badge.pack(side=tk.LEFT)
+        self.status_chip.pack(side=tk.LEFT)
 
-        header_right = tk.Frame(header, bg=self.BG_CARD)
-        header_right.pack(side=tk.RIGHT)
+        # Brand Info (Right)
+        brand_box = tk.Frame(header, bg=self.COLOR_BG)
+        brand_box.pack(side=tk.RIGHT)
 
-        title_texts = tk.Frame(header_right, bg=self.BG_CARD)
-        title_texts.pack(side=tk.RIGHT, padx=(0, 10))
+        text_col = tk.Frame(brand_box, bg=self.COLOR_BG)
+        text_col.pack(side=tk.RIGHT, padx=(0, 10))
 
         title_lbl = tk.Label(
-            title_texts,
+            text_col,
             text="فَصِـــيح",
             font=("Segoe UI", 18, "bold"),
-            fg=self.TEXT_PRIMARY,
-            bg=self.BG_CARD
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_BG
         )
         title_lbl.pack(anchor="e")
 
         sub_lbl = tk.Label(
-            title_texts,
-            text="المساعد الذكي لتصحيح لغة الكيبورد",
+            text_col,
+            text="المساعد الذكي للغة الكيبورد",
             font=("Segoe UI", 9),
-            fg=self.TEXT_SECONDARY,
-            bg=self.BG_CARD
+            fg=self.COLOR_TEXT_MUTED,
+            bg=self.COLOR_BG
         )
         sub_lbl.pack(anchor="e")
 
         if hasattr(self, 'logo_photo') and self.logo_photo:
             try:
-                img_raw = Image.open(get_resource_path("app_icon.png")).resize((48, 48), Image.Resampling.LANCZOS)
+                img_raw = Image.open(get_resource_path("app_icon.png")).resize((46, 46), Image.Resampling.LANCZOS)
                 self.logo_head = ImageTk.PhotoImage(img_raw)
-                logo_lbl = tk.Label(header_right, image=self.logo_head, bg=self.BG_CARD)
+                logo_lbl = tk.Label(brand_box, image=self.logo_head, bg=self.COLOR_BG)
                 logo_lbl.pack(side=tk.RIGHT)
             except Exception:
                 pass
 
-        # ----------------- 2. MAIN BODY -----------------
-        body = tk.Frame(self.root, bg=self.BG_MAIN, padx=22, pady=14)
-        body.pack(fill=tk.BOTH, expand=True)
+        # ----------------- 2. MAIN CONTAINER -----------------
+        main_box = tk.Frame(self.root, bg=self.COLOR_BG, padx=26, pady=4)
+        main_box.pack(fill=tk.BOTH, expand=True)
 
-        # ----------------- 3. ANALYTICS BENTO CARDS -----------------
-        stats_frame = tk.Frame(body, bg=self.BG_MAIN)
-        stats_frame.pack(fill=tk.X, pady=(0, 12))
+        # ----------------- 3. BENTO STATS CARDS (FLAT & CLEAN) -----------------
+        stats_frame = tk.Frame(main_box, bg=self.COLOR_BG)
+        stats_frame.pack(fill=tk.X, pady=(0, 16))
 
-        # Card 1: Rescue Count
-        c1 = tk.Frame(stats_frame, bg=self.BG_CARD, bd=1, relief=tk.SOLID, padx=14, pady=10)
-        c1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 6))
+        # Card 1: Rescues
+        c1 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=16, pady=14)
+        c1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 8))
 
-        c1_head = tk.Label(c1, text="🛡️ مرات الإنقاذ", font=("Segoe UI", 9, "bold"), fg=self.ACCENT_CYAN, bg=self.BG_CARD)
-        c1_head.pack(anchor="center")
-
+        tk.Label(c1, text="مرات الإنقاذ 🛡️", font=("Segoe UI", 9, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c1_val = tk.Label(
             c1,
             text=f"{self.rescues_count} مرة",
-            font=("Segoe UI", 18, "bold"),
-            fg=self.TEXT_PRIMARY,
-            bg=self.BG_CARD
+            font=("Segoe UI", 20, "bold"),
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE
         )
-        self.c1_val.pack(anchor="center", pady=(3, 1))
-
-        c1_sub = tk.Label(c1, text="تصحيح فوري دون مسح", font=("Segoe UI", 8), fg=self.TEXT_SECONDARY, bg=self.BG_CARD)
-        c1_sub.pack(anchor="center")
+        self.c1_val.pack(anchor="center", pady=(4, 2))
+        tk.Label(c1, text="تصحيح فوري دون مسح", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
         # Card 2: Time Saved (Hours, Minutes, Seconds)
-        c2 = tk.Frame(stats_frame, bg=self.BG_CARD, bd=1, relief=tk.SOLID, padx=14, pady=10)
-        c2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(6, 0))
+        c2 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=16, pady=14)
+        c2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(8, 0))
 
-        c2_head = tk.Label(c2, text="⏱️ الوقت الموفّر", font=("Segoe UI", 9, "bold"), fg=self.ACCENT_GREEN, bg=self.BG_CARD)
-        c2_head.pack(anchor="center")
-
+        tk.Label(c2, text="الوقت الموفّر ⏱️", font=("Segoe UI", 9, "bold"), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c2_val = tk.Label(
             c2,
             text=format_time_saved(self.seconds_saved),
             font=("Segoe UI", 13, "bold"),
-            fg=self.TEXT_PRIMARY,
-            bg=self.BG_CARD
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE
         )
-        self.c2_val.pack(anchor="center", pady=(5, 1))
+        self.c2_val.pack(anchor="center", pady=(6, 2))
+        tk.Label(c2, text="ساعات • دقائق • ثواني", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
-        c2_sub = tk.Label(c2, text="ساعات • دقائق • ثواني", font=("Segoe UI", 8), fg=self.TEXT_SECONDARY, bg=self.BG_CARD)
-        c2_sub.pack(anchor="center")
+        # ----------------- 4. SEAMLESS SHORTCUT PILLS -----------------
+        shortcuts_card = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=14)
+        shortcuts_card.pack(fill=tk.X, pady=(0, 16))
 
-        # ----------------- 4. VISUAL KEYCAP CHIPS -----------------
-        chips_card = tk.Frame(body, bg=self.BG_CARD, bd=1, relief=tk.SOLID, padx=16, pady=10)
-        chips_card.pack(fill=tk.X, pady=(0, 12))
-
-        chips_title = tk.Label(
-            chips_card,
-            text="⚡ الاختصارات المعتمدة لتصحيح أي نص مظلل في جهازك:",
+        tk.Label(
+            shortcuts_card,
+            text="اختصارات التصحيح السريع في أي نافذة:",
             font=("Segoe UI", 9, "bold"),
-            fg=self.TEXT_PRIMARY,
-            bg=self.BG_CARD
-        )
-        chips_title.pack(anchor="e", pady=(0, 6))
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE
+        ).pack(anchor="e", pady=(0, 8))
 
-        chips_row = tk.Frame(chips_card, bg=self.BG_CARD)
-        chips_row.pack(fill=tk.X)
+        pills_row = tk.Frame(shortcuts_card, bg=self.COLOR_SURFACE)
+        pills_row.pack(fill=tk.X)
 
-        chip1 = tk.Frame(chips_row, bg=self.BG_CARD_SUB, padx=8, pady=3, relief=tk.RIDGE, bd=1)
-        chip1.pack(side=tk.RIGHT, padx=4)
-        tk.Label(chip1, text="Ctrl + Shift + A", font=("Consolas", 10, "bold"), fg="#38BDF8", bg=self.BG_CARD_SUB).pack()
+        # Pill 1
+        p1 = tk.Label(pills_row, text="Ctrl + Shift + A", font=("Segoe UI", 10, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_SURFACE_LIGHT, padx=12, pady=5)
+        p1.pack(side=tk.RIGHT, padx=4)
 
-        chip2 = tk.Frame(chips_row, bg=self.BG_CARD_SUB, padx=8, pady=3, relief=tk.RIDGE, bd=1)
-        chip2.pack(side=tk.RIGHT, padx=4)
-        tk.Label(chip2, text="Alt + Q", font=("Consolas", 10, "bold"), fg="#A78BFA", bg=self.BG_CARD_SUB).pack()
+        # Pill 2
+        p2 = tk.Label(pills_row, text="Alt + Q", font=("Segoe UI", 10, "bold"), fg=self.COLOR_INDIGO, bg=self.COLOR_SURFACE_LIGHT, padx=12, pady=5)
+        p2.pack(side=tk.RIGHT, padx=4)
 
-        chip3 = tk.Frame(chips_row, bg=self.BG_CARD_SUB, padx=8, pady=3, relief=tk.RIDGE, bd=1)
-        chip3.pack(side=tk.RIGHT, padx=4)
-        tk.Label(chip3, text="F9", font=("Consolas", 10, "bold"), fg="#34D399", bg=self.BG_CARD_SUB).pack()
+        # Pill 3
+        p3 = tk.Label(pills_row, text="F9", font=("Segoe UI", 10, "bold"), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE_LIGHT, padx=12, pady=5)
+        p3.pack(side=tk.RIGHT, padx=4)
 
-        # ----------------- 5. INTERACTIVE LIVE TEST ZONE -----------------
-        test_frame = tk.LabelFrame(
-            body,
-            text="  جرب التصحيح المباشر هنا  ",
+        # ----------------- 5. MODERN TEST FIELD -----------------
+        test_card = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=14)
+        test_card.pack(fill=tk.X, pady=(0, 16))
+
+        tk.Label(
+            test_card,
+            text="تجربة التحويل المباشر داخل التطبيق:",
             font=("Segoe UI", 9, "bold"),
-            fg=self.ACCENT_CYAN,
-            bg=self.BG_MAIN,
-            padx=14,
-            pady=8
-        )
-        test_frame.pack(fill=tk.X, pady=(0, 12))
+            fg=self.COLOR_CYAN,
+            bg=self.COLOR_SURFACE
+        ).pack(anchor="e", pady=(0, 8))
 
         self.test_entry = tk.Entry(
-            test_frame,
+            test_card,
             font=("Segoe UI", 12),
             justify=tk.CENTER,
-            bg="#1E293B",
-            fg="#FFFFFF",
-            insertbackground="#38BDF8",
+            bg=self.COLOR_SURFACE_LIGHT,
+            fg=self.COLOR_TEXT_MAIN,
+            insertbackground=self.COLOR_CYAN,
             relief=tk.FLAT,
-            bd=5
+            bd=8
         )
         self.test_entry.insert(0, ";dt phg;")
-        self.test_entry.pack(fill=tk.X, pady=(2, 6))
+        self.test_entry.pack(fill=tk.X, pady=(0, 10))
         self.test_entry.bind("<Return>", lambda e: self._convert_test_box())
 
-        btn_row = tk.Frame(test_frame, bg=self.BG_MAIN)
-        btn_row.pack(fill=tk.X)
+        action_row = tk.Frame(test_card, bg=self.COLOR_SURFACE)
+        action_row.pack(fill=tk.X)
 
         test_btn = tk.Button(
-            btn_row,
+            action_row,
             text="✨ تحويل فوري (Enter)",
             font=("Segoe UI", 9, "bold"),
-            bg="#2563EB",
+            bg=self.COLOR_PRIMARY,
             fg="#FFFFFF",
-            activebackground="#1D4ED8",
+            activebackground=self.COLOR_PRIMARY_HOVER,
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
-            padx=14,
-            pady=4,
+            padx=16,
+            pady=6,
             cursor="hand2",
             command=self._convert_test_box
         )
         test_btn.pack(side=tk.LEFT, padx=(0, 8))
 
         clear_btn = tk.Button(
-            btn_row,
+            action_row,
             text="مسح",
             font=("Segoe UI", 9),
-            bg="#1E293B",
-            fg=self.TEXT_SECONDARY,
+            bg=self.COLOR_SURFACE_LIGHT,
+            fg=self.COLOR_TEXT_MUTED,
+            activebackground="#475569",
+            activeforeground="#FFFFFF",
             relief=tk.FLAT,
-            padx=10,
-            pady=4,
+            padx=14,
+            pady=6,
             cursor="hand2",
             command=lambda: self.test_entry.delete(0, tk.END)
         )
         clear_btn.pack(side=tk.LEFT)
 
-        # ----------------- 6. AUTOSTART & UPDATES BAR -----------------
-        settings_box = tk.Frame(body, bg=self.BG_CARD, bd=1, relief=tk.SOLID, padx=14, pady=8)
-        settings_box.pack(fill=tk.X, pady=(0, 12))
+        # ----------------- 6. CLEAN SETTINGS STRIP -----------------
+        settings_strip = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=10)
+        settings_strip.pack(fill=tk.X, pady=(0, 16))
 
         self.autostart_var = tk.BooleanVar(value=is_autostart_enabled())
 
         autostart_chk = tk.Checkbutton(
-            settings_box,
-            text=" تشغيل «فَصِيح» تلقائياً عند فتح اللابتوب (Run at Startup)",
+            settings_strip,
+            text="تشغيل فصيح تلقائياً عند فتح اللابتوب (Startup)",
             variable=self.autostart_var,
-            font=("Segoe UI", 9, "bold"),
-            fg=self.TEXT_PRIMARY,
-            bg=self.BG_CARD,
-            activebackground=self.BG_CARD,
-            activeforeground=self.ACCENT_CYAN,
-            selectcolor="#1E293B",
+            font=("Segoe UI", 9),
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE,
+            activebackground=self.COLOR_SURFACE,
+            activeforeground=self.COLOR_CYAN,
+            selectcolor=self.COLOR_SURFACE_LIGHT,
             command=self._toggle_autostart
         )
         autostart_chk.pack(anchor="w")
 
-        # ----------------- 7. FOOTER CONTROLS -----------------
-        footer = tk.Frame(body, bg=self.BG_MAIN)
-        footer.pack(fill=tk.X, side=tk.BOTTOM)
+        # ----------------- 7. SEAMLESS BOTTOM CONTROLS -----------------
+        bottom_bar = tk.Frame(main_box, bg=self.COLOR_BG)
+        bottom_bar.pack(fill=tk.X, side=tk.BOTTOM)
 
-        # Check update button (Left)
         self.update_btn = tk.Button(
-            footer,
+            bottom_bar,
             text=f"🔄 فحص التحديثات (v{CURRENT_VERSION})",
             font=("Segoe UI", 8, "bold"),
-            bg="#1E293B",
-            fg=self.ACCENT_CYAN,
+            bg=self.COLOR_SURFACE,
+            fg=self.COLOR_CYAN,
             relief=tk.FLAT,
-            padx=10,
-            pady=4,
+            padx=12,
+            pady=6,
             cursor="hand2",
             command=lambda: threading.Thread(target=self._check_update_task, args=(True,), daemon=True).start()
         )
         self.update_btn.pack(side=tk.LEFT)
 
-        # Minimize & Toggle (Right)
         self.toggle_btn = tk.Button(
-            footer,
+            bottom_bar,
             text="⏸️ إيقاف مؤقت",
             font=("Segoe UI", 9),
-            bg=self.BG_CARD,
-            fg=self.TEXT_PRIMARY,
+            bg=self.COLOR_SURFACE,
+            fg=self.COLOR_TEXT_MAIN,
             relief=tk.FLAT,
-            padx=10,
-            pady=4,
+            padx=14,
+            pady=5,
+            cursor="hand2",
             command=self._toggle_service
         )
         self.toggle_btn.pack(side=tk.RIGHT)
 
         min_btn = tk.Button(
-            footer,
-            text="🔽 تصغير للشريط",
+            bottom_bar,
+            text="🔽 تصغير",
             font=("Segoe UI", 9),
-            bg=self.BG_CARD,
-            fg=self.TEXT_PRIMARY,
+            bg=self.COLOR_SURFACE,
+            fg=self.COLOR_TEXT_MAIN,
             relief=tk.FLAT,
-            padx=10,
-            pady=4,
+            padx=14,
+            pady=5,
+            cursor="hand2",
             command=self.root.iconify
         )
-        min_btn.pack(side=tk.RIGHT, padx=6)
+        min_btn.pack(side=tk.RIGHT, padx=8)
 
     def _toggle_autostart(self):
         enabled = self.autostart_var.get()
@@ -601,11 +580,11 @@ class KeyboardFixerApp:
     def _toggle_service(self):
         self.is_active = not self.is_active
         if self.is_active:
-            self.status_badge.config(text="● نَشِط في الخلفية", fg=self.ACCENT_GREEN, bg="#064E3B")
+            self.status_chip.config(text="● نَشِط بالخلفية", fg=self.COLOR_EMERALD, bg="#064E3B")
             self.toggle_btn.config(text="⏸️ إيقاف مؤقت")
             FloatingToast.show("تم استئناف عمل مصحح الكيبورد", "فَصِيح 🟢")
         else:
-            self.status_badge.config(text="● متوقف مؤقتاً", fg="#EF4444", bg="#450A0A")
+            self.status_chip.config(text="● متوقف مؤقتاً", fg="#EF4444", bg="#450A0A")
             self.toggle_btn.config(text="▶️ تشغيل")
             FloatingToast.show("تم إيقاف الأداة مؤقتاً", "فَصِيح 🔴")
 
@@ -614,7 +593,6 @@ class KeyboardFixerApp:
             keyboard.add_hotkey('ctrl+shift+a', self._trigger_hotkey, suppress=False)
             keyboard.add_hotkey('alt+q', self._trigger_hotkey, suppress=False)
             keyboard.add_hotkey('f9', self._trigger_hotkey, suppress=False)
-            print("Registered: Ctrl+Shift+A, Alt+Q, F9.")
         except Exception as e:
             print(f"Error registering hotkeys: {e}")
 
@@ -678,14 +656,13 @@ class KeyboardFixerApp:
         finally:
             self.is_processing = False
 
-    # ----------------- AUTO-UPDATER ENGINE -----------------
     def _check_update_task(self, manual=False):
         try:
             if manual:
                 self.update_btn.config(text="⏳ جاري الفحص...")
 
             req = urllib.request.Request(UPDATE_CHECK_URL, headers={'User-Agent': 'Faseeh-Updater'})
-            with urllib.request.urlopen(req, timeout=4) as response:
+            with urllib.request.urlopen(req, timeout=5) as response:
                 data = json.loads(response.read().decode('utf-8'))
 
             remote_ver_str = data.get("version", "1.0.0")
@@ -693,7 +670,6 @@ class KeyboardFixerApp:
             notes = data.get("release_notes", "تحسينات عامة وإصلاحات.")
 
             if parse_version(remote_ver_str) > parse_version(CURRENT_VERSION):
-                # New update found!
                 self.root.after(0, lambda: self._prompt_update_modal(remote_ver_str, download_url, notes))
             else:
                 if manual:
@@ -705,7 +681,7 @@ class KeyboardFixerApp:
             if manual:
                 self.root.after(0, lambda: messagebox.showinfo(
                     "فَصِيح - التحديثات",
-                    f"الإصدار المثبت: v{CURRENT_VERSION}\n\n(ملاحظة: خادم التحديثات السحابي جاهز وسيعمل فور رفع ملف version.json على مستودعك على الإنترنت)."
+                    f"الإصدار الحالي: v{CURRENT_VERSION}\nتعذر الاتصال بـ GitHub، تأكد من اتصال الإنترنت."
                 ))
         finally:
             if manual:
@@ -713,34 +689,34 @@ class KeyboardFixerApp:
 
     def _prompt_update_modal(self, new_ver, dl_url, notes):
         modal = tk.Toplevel(self.root)
-        modal.title(f"تحديث جديد متاح: v{new_ver}")
-        modal.geometry("440x260")
+        modal.title(f"تحديث جديد: v{new_ver}")
+        modal.geometry("450x260")
         modal.resizable(False, False)
-        modal.configure(bg=self.BG_MAIN)
+        modal.configure(bg=self.COLOR_BG)
         modal.transient(self.root)
         modal.grab_set()
 
         head = tk.Label(
             modal, text=f"🎉 يتوفر إصدار جديد من فَصِيح (v{new_ver})",
-            font=("Segoe UI", 12, "bold"), fg=self.ACCENT_CYAN, bg=self.BG_MAIN
+            font=("Segoe UI", 12, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_BG
         )
-        head.pack(pady=(16, 8))
+        head.pack(pady=(18, 8))
 
         notes_box = tk.Label(
             modal, text=f"ما الجديد في هذا التحديث:\n{notes}",
-            font=("Segoe UI", 9), fg=self.TEXT_SECONDARY, bg=self.BG_MAIN,
-            wraplength=380, justify=tk.RIGHT
+            font=("Segoe UI", 9), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_BG,
+            wraplength=390, justify=tk.RIGHT
         )
         notes_box.pack(pady=(0, 16), padx=20)
 
-        status_lbl = tk.Label(modal, text="", font=("Segoe UI", 9), fg=self.ACCENT_GREEN, bg=self.BG_MAIN)
+        status_lbl = tk.Label(modal, text="", font=("Segoe UI", 9), fg=self.COLOR_EMERALD, bg=self.COLOR_BG)
         status_lbl.pack(pady=(0, 10))
 
-        btn_row = tk.Frame(modal, bg=self.BG_MAIN)
+        btn_row = tk.Frame(modal, bg=self.COLOR_BG)
         btn_row.pack(side=tk.BOTTOM, pady=16)
 
         def _start_download():
-            status_lbl.config(text="⏳ جاري تحميل وتثبيت التحديث تلقائياً...")
+            status_lbl.config(text="⏳ جاري تحميل وتثبيت التحديث...")
             dl_btn.config(state=tk.DISABLED)
 
             def _dl_worker():
@@ -748,7 +724,7 @@ class KeyboardFixerApp:
                     temp_dir = os.environ.get("TEMP", ".")
                     new_file = os.path.join(temp_dir, f"Faseeh_{new_ver}.exe")
                     urllib.request.urlretrieve(dl_url, new_file)
-                    status_lbl.config(text="✅ اكتمل التحميل! جاري إعادة التشغيل...")
+                    status_lbl.config(text="✅ اكتمل التحميل! جاري التثبيت التلقائي...")
                     time.sleep(0.8)
                     apply_update_and_restart(new_file)
                 except Exception as e:
@@ -759,7 +735,7 @@ class KeyboardFixerApp:
 
         dl_btn = tk.Button(
             btn_row, text="🚀 تحديث وتثبيت الآن",
-            font=("Segoe UI", 9, "bold"), bg="#2563EB", fg="#FFFFFF",
+            font=("Segoe UI", 9, "bold"), bg=self.COLOR_PRIMARY, fg="#FFFFFF",
             relief=tk.FLAT, padx=14, pady=6, cursor="hand2",
             command=_start_download
         )
@@ -767,7 +743,7 @@ class KeyboardFixerApp:
 
         cancel_btn = tk.Button(
             btn_row, text="لاحقاً",
-            font=("Segoe UI", 9), bg="#1E293B", fg=self.TEXT_SECONDARY,
+            font=("Segoe UI", 9), bg=self.COLOR_SURFACE, fg=self.COLOR_TEXT_MUTED,
             relief=tk.FLAT, padx=12, pady=6, cursor="hand2",
             command=modal.destroy
         )
