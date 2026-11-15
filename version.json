@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe",
-  "release_notes": "إشعار منبثق فائق السلاسة عند تحويل النص (Fade In/Out)، يبقى ظاهراً لمدة 5 ثوانٍ، مع زر (✕) للإغلاق الفوري السريع."
+  "release_notes": "حركة انزلاق جانبية أنيقة للرسالة (Slide-in من اليمين و Slide-out)، تبقى لمدة 5 ثوانٍ، مع زر (✕) للإغلاق الفوري السريع."
 }

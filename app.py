@@ -25,11 +25,11 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.3.0"
+CURRENT_VERSION = "1.4.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.3.0'
+    myappid = 'faseeh.keyboard.fixer.v1.4.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
@@ -213,7 +213,7 @@ class FloatingToast:
     def show(message, title="فَصِيح ✨"):
         def _run():
             try:
-                # Close any previous toast cleanly
+                # Close any existing active toast cleanly
                 if FloatingToast._active_toast:
                     try:
                         FloatingToast._active_toast.destroy()
@@ -224,7 +224,7 @@ class FloatingToast:
                 FloatingToast._active_toast = toast
                 toast.overrideredirect(True)
                 toast.attributes("-topmost", True)
-                toast.attributes("-alpha", 0.0)  # Starts transparent for smooth fade-in
+                toast.attributes("-alpha", 0.98)
                 toast.configure(bg="#0F172A")
 
                 sw = toast.winfo_screenwidth()
@@ -232,11 +232,15 @@ class FloatingToast:
 
                 width = 350
                 height = 92
-                x = sw - width - 24
+                target_x = sw - width - 24
+                hidden_x = sw + 10
                 y = sh - height - 60
-                toast.geometry(f"{width}x{height}+{x}+{y}")
 
-                # Sleek border card
+                # Start completely off-screen on the right for sliding entrance
+                cur_x = hidden_x
+                toast.geometry(f"{width}x{height}+{cur_x}+{y}")
+
+                # Modern card container with subtle accent border
                 border_frame = tk.Frame(toast, bg="#334155", padx=1, pady=1)
                 border_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -247,7 +251,7 @@ class FloatingToast:
                 top_bar = tk.Frame(inner, bg="#0F172A")
                 top_bar.pack(fill=tk.X, pady=(0, 4))
 
-                # Quick Dismiss Button (✕)
+                # Dismiss Button (✕)
                 close_btn = tk.Label(
                     top_bar,
                     text="✕",
@@ -282,54 +286,69 @@ class FloatingToast:
                 )
                 msg_lbl.pack(fill=tk.BOTH, expand=True, anchor="e")
 
-                # Animation State & Lifecycle
-                anim_state = {"alpha": 0.0, "closing": False, "timer_id": None}
+                # Animation State
+                anim_state = {"cur_x": hidden_x, "closing": False, "timer_id": None}
 
-                def _fade_out():
-                    if anim_state["closing"] and anim_state["alpha"] <= 0.05:
-                        return
+                def _slide_out():
                     anim_state["closing"] = True
-
                     if anim_state["timer_id"]:
                         try:
                             toast.after_cancel(anim_state["timer_id"])
                         except Exception:
                             pass
 
-                    if anim_state["alpha"] > 0.08:
-                        anim_state["alpha"] -= 0.12
-                        if anim_state["alpha"] < 0:
-                            anim_state["alpha"] = 0
-                        try:
-                            toast.attributes("-alpha", anim_state["alpha"])
-                            toast.after(16, _fade_out)
-                        except Exception:
+                    # Slide back to the right off-screen
+                    if anim_state["cur_x"] < hidden_x:
+                        dist = hidden_x - anim_state["cur_x"]
+                        step = max(5, int(max(dist, 10) * 0.28))
+                        anim_state["cur_x"] += step
+                        if anim_state["cur_x"] >= hidden_x:
                             try:
                                 toast.destroy()
                             except Exception:
                                 pass
+                        else:
+                            try:
+                                toast.geometry(f"{width}x{height}+{anim_state['cur_x']}+{y}")
+                                toast.after(12, _slide_out)
+                            except Exception:
+                                try:
+                                    toast.destroy()
+                                except Exception:
+                                    pass
                     else:
                         try:
                             toast.destroy()
                         except Exception:
                             pass
 
-                def _fade_in():
+                def _slide_in():
                     if anim_state["closing"]:
                         return
-                    if anim_state["alpha"] < 0.96:
-                        anim_state["alpha"] += 0.08
-                        if anim_state["alpha"] > 0.96:
-                            anim_state["alpha"] = 0.96
-                        try:
-                            toast.attributes("-alpha", anim_state["alpha"])
-                            toast.after(16, _fade_in)
-                        except Exception:
-                            pass
+                    # Slide from the right into target position
+                    if anim_state["cur_x"] > target_x:
+                        dist = anim_state["cur_x"] - target_x
+                        step = max(3, int(dist * 0.28))
+                        anim_state["cur_x"] -= step
+                        if anim_state["cur_x"] <= target_x:
+                            anim_state["cur_x"] = target_x
+                            try:
+                                toast.geometry(f"{width}x{height}+{target_x}+{y}")
+                                # Stay visible for 5 seconds (5000ms), then slide out
+                                anim_state["timer_id"] = toast.after(5000, _slide_out)
+                            except Exception:
+                                pass
+                        else:
+                            try:
+                                toast.geometry(f"{width}x{height}+{anim_state['cur_x']}+{y}")
+                                toast.after(12, _slide_in)
+                            except Exception:
+                                pass
                     else:
-                        # Stays for 5 seconds (5000ms), then smoothly fades out
+                        anim_state["cur_x"] = target_x
                         try:
-                            anim_state["timer_id"] = toast.after(5000, _fade_out)
+                            toast.geometry(f"{width}x{height}+{target_x}+{y}")
+                            anim_state["timer_id"] = toast.after(5000, _slide_out)
                         except Exception:
                             pass
 
@@ -341,14 +360,14 @@ class FloatingToast:
                     close_btn.configure(fg="#94A3B8", bg="#0F172A")
 
                 def _on_click_close(e):
-                    _fade_out()
+                    _slide_out()
 
                 close_btn.bind("<Enter>", _on_hover_in)
                 close_btn.bind("<Leave>", _on_hover_out)
                 close_btn.bind("<Button-1>", _on_click_close)
 
-                # Launch smooth fade-in
-                toast.after(10, _fade_in)
+                # Start smooth slide-in immediately
+                toast.after(10, _slide_in)
                 toast.mainloop()
             except Exception:
                 pass
