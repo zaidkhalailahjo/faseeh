@@ -26,15 +26,26 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.6.0"
+CURRENT_VERSION = "1.7.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 SINGLE_INSTANCE_PORT = 47892
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.6.0'
+    myappid = 'faseeh.keyboard.fixer.v1.7.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
+
+def play_soft_chime(enabled=True):
+    if not enabled:
+        return
+    def _run():
+        try:
+            winsound.Beep(920, 35)
+            winsound.Beep(1380, 45)
+        except Exception:
+            pass
+    threading.Thread(target=_run, daemon=True).start()
 
 user32 = ctypes.windll.user32
 VK_CONTROL = 0x11
@@ -63,7 +74,10 @@ def load_user_data():
     default_data = {
         "rescues_count": 0,
         "seconds_saved": 0.0,
-        "autostart": True
+        "autostart": True,
+        "sound_enabled": True,
+        "autodetect_enabled": True,
+        "preferred_hotkey": "Ctrl + Shift + A"
     }
     if os.path.exists(DATA_FILE):
         try:
@@ -377,11 +391,90 @@ class FloatingToast:
         threading.Thread(target=_run, daemon=True).start()
 
 
+class AutoDetectBubble:
+    _active = None
+
+    @staticmethod
+    def show(word, candidate, on_accept_callback):
+        def _run():
+            try:
+                if AutoDetectBubble._active:
+                    try:
+                        AutoDetectBubble._active.destroy()
+                    except Exception:
+                        pass
+
+                bubble = tk.Tk()
+                AutoDetectBubble._active = bubble
+                bubble.overrideredirect(True)
+                bubble.attributes("-topmost", True)
+                bubble.attributes("-alpha", 0.96)
+                bubble.configure(bg="#0F172A")
+
+                sw = bubble.winfo_screenwidth()
+                sh = bubble.winfo_screenheight()
+                w = 340
+                h = 52
+                x = sw - w - 24
+                y = sh - h - 160
+                bubble.geometry(f"{w}x{h}+{x}+{y}")
+
+                border = tk.Frame(bubble, bg="#38BDF8", padx=1, pady=1)
+                border.pack(fill=tk.BOTH, expand=True)
+
+                inner = tk.Frame(border, bg="#0F172A", padx=10, pady=6)
+                inner.pack(fill=tk.BOTH, expand=True)
+
+                right_box = tk.Frame(inner, bg="#0F172A")
+                right_box.pack(side=tk.RIGHT)
+
+                preview = candidate if len(candidate) <= 18 else (candidate[:16] + "..")
+                tk.Label(
+                    right_box,
+                    text=f"💡 تصحيح مقترح: «{preview}»",
+                    font=("Segoe UI", 9, "bold"),
+                    fg="#38BDF8",
+                    bg="#0F172A"
+                ).pack(anchor="e")
+
+                left_box = tk.Frame(inner, bg="#0F172A")
+                left_box.pack(side=tk.LEFT)
+
+                tab_btn = tk.Label(
+                    left_box,
+                    text="اضغط Tab للتطبيق",
+                    font=("Segoe UI", 8, "bold"),
+                    fg="#F8FAFC",
+                    bg="#1E293B",
+                    padx=7,
+                    pady=2,
+                    cursor="hand2"
+                )
+                tab_btn.pack(side=tk.LEFT)
+                tab_btn.bind("<Button-1>", lambda e: on_accept_callback())
+
+                bubble.after(3500, lambda: AutoDetectBubble.hide())
+                bubble.mainloop()
+            except Exception:
+                pass
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    @staticmethod
+    def hide():
+        if AutoDetectBubble._active:
+            try:
+                AutoDetectBubble._active.destroy()
+            except Exception:
+                pass
+            AutoDetectBubble._active = None
+
+
 class KeyboardFixerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("فَصِيح - مصحح الكيبورد الذكي")
-        self.root.geometry("560x610")
+        self.root.geometry("560x675")
         self.root.resizable(False, False)
 
         self.COLOR_BG = "#0B1120"
@@ -399,6 +492,9 @@ class KeyboardFixerApp:
         self.rescues_count = self.user_data.get("rescues_count", 0)
         self.seconds_saved = self.user_data.get("seconds_saved", 0.0)
 
+        self.typed_buffer = []
+        self._last_detected_pair = None
+
         self._apply_icons()
 
         self.is_active = True
@@ -406,6 +502,11 @@ class KeyboardFixerApp:
 
         self._setup_ui()
         self._register_hotkeys()
+
+        try:
+            keyboard.on_press(self._on_key_typed)
+        except Exception:
+            pass
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close_clicked)
         self._start_ipc_server()
@@ -612,15 +713,18 @@ class KeyboardFixerApp:
 
         # ----------------- 6. SETTINGS STRIP -----------------
         settings_strip = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=10)
-        settings_strip.pack(fill=tk.X, pady=(0, 16))
+        settings_strip.pack(fill=tk.X, pady=(0, 14))
+
+        # Row 1: Startup & Sound
+        row1 = tk.Frame(settings_strip, bg=self.COLOR_SURFACE)
+        row1.pack(fill=tk.X, pady=(0, 4))
 
         self.autostart_var = tk.BooleanVar(value=is_autostart_enabled())
-
         autostart_chk = tk.Checkbutton(
-            settings_strip,
-            text="تشغيل فصيح تلقائياً عند فتح اللابتوب (Startup)",
+            row1,
+            text="تشغيل تلقائي مع الويندوز",
             variable=self.autostart_var,
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 8),
             fg=self.COLOR_TEXT_MAIN,
             bg=self.COLOR_SURFACE,
             activebackground=self.COLOR_SURFACE,
@@ -628,7 +732,73 @@ class KeyboardFixerApp:
             selectcolor=self.COLOR_SURFACE_LIGHT,
             command=self._toggle_autostart
         )
-        autostart_chk.pack(anchor="w")
+        autostart_chk.pack(side=tk.RIGHT)
+
+        self.sound_var = tk.BooleanVar(value=self.user_data.get("sound_enabled", True))
+        sound_chk = tk.Checkbutton(
+            row1,
+            text="نغمة ناعمة عند التحويل (Juice 🔔)",
+            variable=self.sound_var,
+            font=("Segoe UI", 8),
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE,
+            activebackground=self.COLOR_SURFACE,
+            activeforeground=self.COLOR_CYAN,
+            selectcolor=self.COLOR_SURFACE_LIGHT,
+            command=self._toggle_sound
+        )
+        sound_chk.pack(side=tk.LEFT)
+
+        # Row 2: Auto-Detect Bubble
+        row2 = tk.Frame(settings_strip, bg=self.COLOR_SURFACE)
+        row2.pack(fill=tk.X, pady=(0, 6))
+
+        self.autodetect_var = tk.BooleanVar(value=self.user_data.get("autodetect_enabled", True))
+        autodetect_chk = tk.Checkbutton(
+            row2,
+            text="بالون التصحيح التلقائي الذكي أثناء الكتابة (Auto-Detect 💡)",
+            variable=self.autodetect_var,
+            font=("Segoe UI", 8),
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE,
+            activebackground=self.COLOR_SURFACE,
+            activeforeground=self.COLOR_CYAN,
+            selectcolor=self.COLOR_SURFACE_LIGHT,
+            command=self._toggle_autodetect
+        )
+        autodetect_chk.pack(side=tk.RIGHT)
+
+        # Row 3: Hotkey Selector
+        row3 = tk.Frame(settings_strip, bg=self.COLOR_SURFACE)
+        row3.pack(fill=tk.X, pady=(2, 0))
+
+        tk.Label(
+            row3,
+            text="الاختصار الأساسي:",
+            font=("Segoe UI", 8, "bold"),
+            fg=self.COLOR_CYAN,
+            bg=self.COLOR_SURFACE
+        ).pack(side=tk.RIGHT, padx=(4, 0))
+
+        self.hotkey_options = [
+            "Ctrl + Shift + A",
+            "Alt + Q",
+            "F9",
+            "Caps Lock",
+            "Ctrl + Space"
+        ]
+        self.selected_hotkey = tk.StringVar(value=self.user_data.get("preferred_hotkey", "Ctrl + Shift + A"))
+
+        hotkey_dropdown = ttk.Combobox(
+            row3,
+            textvariable=self.selected_hotkey,
+            values=self.hotkey_options,
+            state="readonly",
+            width=16,
+            font=("Segoe UI", 8)
+        )
+        hotkey_dropdown.pack(side=tk.RIGHT)
+        hotkey_dropdown.bind("<<ComboboxSelected>>", self._on_hotkey_changed)
 
         # ----------------- 7. BOTTOM BAR -----------------
         bottom_bar = tk.Frame(main_box, bg=self.COLOR_BG)
@@ -737,6 +907,79 @@ class KeyboardFixerApp:
         else:
             FloatingToast.show("تم إيقاف التشغيل التلقائي مع فتح الجهاز", "فَصِيح ⏸️")
 
+    def _toggle_sound(self):
+        enabled = self.sound_var.get()
+        self.user_data["sound_enabled"] = enabled
+        save_user_data(self.user_data)
+        if enabled:
+            play_soft_chime(True)
+            FloatingToast.show("تم تفعيل النغمة التفاعلية الناعمة 🔔", "فَصِيح")
+        else:
+            FloatingToast.show("تم كتم النغمة التفاعلية 🔕", "فَصِيح")
+
+    def _toggle_autodetect(self):
+        enabled = self.autodetect_var.get()
+        self.user_data["autodetect_enabled"] = enabled
+        save_user_data(self.user_data)
+        if enabled:
+            FloatingToast.show("تم تفعيل بالون التصحيح التلقائي الاستباقي 💡", "فَصِيح")
+        else:
+            FloatingToast.show("تم إيقاف بالون التصحيح التلقائي", "فَصِيح")
+
+    def _on_hotkey_changed(self, event=None):
+        selected = self.selected_hotkey.get()
+        self.user_data["preferred_hotkey"] = selected
+        save_user_data(self.user_data)
+        self._register_hotkeys()
+        FloatingToast.show(f"تم تفعيل الاختصار المفضل: {selected}", "تخصيص الاختصارات ⌨️")
+
+    def _on_key_typed(self, event):
+        if not self.is_active or not self.autodetect_var.get():
+            return
+        try:
+            name = (event.name or "").lower()
+            if name == 'space':
+                typed = "".join(self.typed_buffer).strip()
+                self.typed_buffer = []
+                if len(typed) >= 3:
+                    cand = fix_text(typed)
+                    if cand and cand != typed:
+                        self._last_detected_pair = (typed, cand)
+                        AutoDetectBubble.show(typed, cand, self._accept_autodetect)
+            elif name == 'tab':
+                if self._last_detected_pair and AutoDetectBubble._active:
+                    self._accept_autodetect()
+            elif name == 'backspace':
+                if self.typed_buffer:
+                    self.typed_buffer.pop()
+            elif len(name) == 1 and not (keyboard.is_pressed('ctrl') or keyboard.is_pressed('alt')):
+                self.typed_buffer.append(name)
+                if len(self.typed_buffer) > 25:
+                    self.typed_buffer.pop(0)
+        except Exception:
+            pass
+
+    def _accept_autodetect(self):
+        if not self._last_detected_pair:
+            return
+        orig, cand = self._last_detected_pair
+        self._last_detected_pair = None
+        AutoDetectBubble.hide()
+
+        def _do_replace():
+            erase_count = len(orig) + 1
+            for _ in range(erase_count):
+                user32.keybd_event(0x08, 0, 0, 0)
+                user32.keybd_event(0x08, 0, 0x0002, 0)
+                time.sleep(0.01)
+            time.sleep(0.03)
+            pyperclip.copy(cand + " ")
+            send_paste()
+            play_soft_chime(self.sound_var.get())
+            self.root.after(0, lambda: self._record_rescue(len(orig)))
+
+        threading.Thread(target=_do_replace, daemon=True).start()
+
     def _convert_test_box(self):
         txt = self.test_entry.get()
         if txt:
@@ -744,6 +987,7 @@ class KeyboardFixerApp:
             self.test_entry.delete(0, tk.END)
             self.test_entry.insert(0, fixed)
             self._record_rescue(len(txt))
+            play_soft_chime(self.sound_var.get())
             FloatingToast.show(f"تم التحويل إلى:\n{fixed}")
 
     def _record_rescue(self, char_count):
@@ -771,9 +1015,24 @@ class KeyboardFixerApp:
 
     def _register_hotkeys(self):
         try:
+            keyboard.unhook_all_hotkeys()
+        except Exception:
+            pass
+        try:
+            # Standard persistent hotkeys
             keyboard.add_hotkey('ctrl+shift+a', self._trigger_hotkey, suppress=False)
             keyboard.add_hotkey('alt+q', self._trigger_hotkey, suppress=False)
             keyboard.add_hotkey('f9', self._trigger_hotkey, suppress=False)
+
+            # Custom preferred hotkey
+            pref = self.user_data.get("preferred_hotkey", "Ctrl + Shift + A")
+            clean_pref = pref.lower().replace(" ", "")
+            if clean_pref == "capslock":
+                keyboard.add_hotkey('caps lock', self._trigger_hotkey, suppress=False)
+            elif clean_pref == "ctrl+space":
+                keyboard.add_hotkey('ctrl+space', self._trigger_hotkey, suppress=False)
+            elif clean_pref not in ['ctrl+shift+a', 'alt+q', 'f9']:
+                keyboard.add_hotkey(clean_pref, self._trigger_hotkey, suppress=False)
         except Exception as e:
             print(f"Error registering hotkeys: {e}")
 
@@ -818,10 +1077,7 @@ class KeyboardFixerApp:
                 time.sleep(0.05)
                 send_paste()
 
-                try:
-                    winsound.MessageBeep(winsound.MB_OK)
-                except Exception:
-                    pass
+                play_soft_chime(self.sound_var.get())
 
                 self.root.after(0, lambda: self._record_rescue(len(copied)))
 
@@ -843,8 +1099,14 @@ class KeyboardFixerApp:
             if manual:
                 self.update_btn.config(text="⏳ جاري الفحص...")
 
-            req = urllib.request.Request(UPDATE_CHECK_URL, headers={'User-Agent': 'Faseeh-Updater'})
-            with urllib.request.urlopen(req, timeout=5) as response:
+            check_url = f"{UPDATE_CHECK_URL}?nocache={int(time.time())}"
+            req = urllib.request.Request(check_url, headers={
+                'User-Agent': 'Faseeh-Updater',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            })
+            with urllib.request.urlopen(req, timeout=6) as response:
                 data = json.loads(response.read().decode('utf-8'))
 
             remote_ver_str = data.get("version", "1.0.0")
@@ -951,7 +1213,10 @@ class KeyboardFixerApp:
                             fg=self.COLOR_CYAN
                         )
 
-                    urllib.request.urlretrieve(dl_url, new_file, reporthook=_reporthook)
+                    fresh_dl_url = dl_url
+                    sep = "&" if "?" in fresh_dl_url else "?"
+                    fresh_dl_url = f"{fresh_dl_url}{sep}nocache={int(time.time())}"
+                    urllib.request.urlretrieve(fresh_dl_url, new_file, reporthook=_reporthook)
 
                     status_lbl.config(text="✅ اكتمل التحميل بنسبة 100%! جاري التثبيت...", fg=self.COLOR_EMERALD)
                     time.sleep(0.9)

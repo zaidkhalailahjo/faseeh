@@ -152,15 +152,24 @@ def convert_ar_to_en(text: str) -> str:
     return convert_token_ar_to_en(text)
 
 
+from franco import is_franco_text, convert_franco_to_arabic
+
+
 def fix_text(text: str) -> str:
     """
-    Intelligently converts text typed with incorrect keyboard layout.
+    Intelligently converts text typed with incorrect keyboard layout,
+    or Franco-Arabic (Arabizi) text into proper Arabic.
     Supports mixed sentences (e.g. English gibberish with accidental Arabic keys
     such as ';dt phg; s,t kj;gl uk pvt ي i,i pvt' -> 'كيف حالك سوف نتكلم عن حرف D هوه حرف').
     """
     if not text:
         return text
 
+    # 1. Check if the text is Arabizi / Franco-Arabic
+    if is_franco_text(text):
+        return convert_franco_to_arabic(text)
+
+    # 2. Keyboard layout correction (QWERTY <-> Arabic 101)
     mostly_ar = is_mostly_arabic(text)
     tokens = re.split(r'(\s+)', text)
     converted_tokens = []
@@ -206,5 +215,10 @@ if __name__ == '__main__':
     converted_3 = fix_text(test_3)
     print(f"'{test_3}' -> '{converted_3}'")
     assert converted_3 == "السلام عليكم", f"Expected 'السلام عليكم', got '{converted_3}'"
+
+    test_franco = "mar7aba keefak 7abibi 3ala fekra"
+    converted_franco = fix_text(test_franco)
+    print(f"'{test_franco}' -> '{converted_franco}'")
+    assert converted_franco == "مرحبا كيفك حبيبي على فكرة", f"Expected 'مرحبا كيفك حبيبي على فكرة', got '{converted_franco}'"
 
     print("All tests passed successfully!")

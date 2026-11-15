@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
-  "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe",
-  "release_notes": "الاستمرار في العمل بالخلفية عند إغلاق النافذة دون توقف، الاستيقاظ الفوري عند ضغط الاختصار، وإمكانية الاستعادة بنقرة واحدة."
+  "version": "1.7.0",
+  "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe?v=1.7.0",
+  "release_notes": "1. تحويل الفرانكو والعربيزي إلى عربي فصيح.\n2. بالون التصحيح التلقائي الاستباقي (Auto-Detect) مع تطبيق بضغطة Tab.\n3. نغمة تفاعلية ناعمة ومرضية (Audio Juice).\n4. تخصيص الاختصار المفضل من الواجهة مباشرة.\n5. نظام كسر كاش التحديث لضمان تثبيت أحدث إصدار فوراً وبأقصى سرعة."
 }
