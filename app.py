@@ -13,6 +13,7 @@ import sys
 import os
 import json
 import time
+import socket
 import urllib.request
 import ctypes
 import winsound
@@ -25,11 +26,12 @@ import keyboard
 
 from converter import fix_text, is_mostly_arabic
 
-CURRENT_VERSION = "1.5.0"
+CURRENT_VERSION = "1.6.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
+SINGLE_INSTANCE_PORT = 47892
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.5.0'
+    myappid = 'faseeh.keyboard.fixer.v1.6.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
@@ -405,6 +407,9 @@ class KeyboardFixerApp:
         self._setup_ui()
         self._register_hotkeys()
 
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close_clicked)
+        self._start_ipc_server()
+
         if self.user_data.get("autostart", True) and not is_autostart_enabled():
             set_autostart(True)
 
@@ -657,19 +662,70 @@ class KeyboardFixerApp:
         )
         self.toggle_btn.pack(side=tk.RIGHT)
 
-        min_btn = tk.Button(
+        hide_btn = tk.Button(
             bottom_bar,
-            text="🔽 تصغير",
+            text="🛡️ إخفاء بالخلفية",
             font=("Segoe UI", 9),
             bg=self.COLOR_SURFACE,
             fg=self.COLOR_TEXT_MAIN,
             relief=tk.FLAT,
-            padx=14,
+            padx=12,
             pady=5,
             cursor="hand2",
-            command=self.root.iconify
+            command=self._on_close_clicked
         )
-        min_btn.pack(side=tk.RIGHT, padx=8)
+        hide_btn.pack(side=tk.RIGHT, padx=6)
+
+        exit_btn = tk.Button(
+            bottom_bar,
+            text="✕ إغلاق كامل",
+            font=("Segoe UI", 8),
+            bg=self.COLOR_BG,
+            fg="#64748B",
+            activeforeground="#EF4444",
+            relief=tk.FLAT,
+            padx=6,
+            pady=5,
+            cursor="hand2",
+            command=self._quit_app
+        )
+        exit_btn.pack(side=tk.RIGHT, padx=2)
+
+    def _start_ipc_server(self):
+        def _server():
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind(('127.0.0.1', SINGLE_INSTANCE_PORT))
+                s.listen(3)
+                while True:
+                    conn, _ = s.accept()
+                    data = conn.recv(64)
+                    if data == b'SHOW':
+                        self.root.after(0, self._restore_window)
+                    conn.close()
+            except Exception:
+                pass
+        threading.Thread(target=_server, daemon=True).start()
+
+    def _on_close_clicked(self):
+        self.root.withdraw()
+        FloatingToast.show(
+            "يعمل 'فَصِيح' الآن في الخلفية بهدوء 🛡️\nاضغط الاختصار في أي وقت لتحويل النص مباشرة.",
+            "فَصِيح نَشِط ✨"
+        )
+
+    def _restore_window(self):
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+
+    def _quit_app(self):
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+        sys.exit(0)
 
     def _toggle_autostart(self):
         enabled = self.autostart_var.get()
@@ -923,7 +979,24 @@ class KeyboardFixerApp:
         cancel_btn.pack(side=tk.LEFT)
 
 
+def try_wake_existing_instance():
+    """Attempt to contact a running instance of Faseeh to bring it to foreground."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.4)
+        s.connect(('127.0.0.1', SINGLE_INSTANCE_PORT))
+        s.sendall(b'SHOW')
+        s.close()
+        return True
+    except Exception:
+        return False
+
+
 def main():
+    if try_wake_existing_instance():
+        # Another instance is already active in background. It has been restored!
+        sys.exit(0)
+
     root = tk.Tk()
     app = KeyboardFixerApp(root)
     root.mainloop()
