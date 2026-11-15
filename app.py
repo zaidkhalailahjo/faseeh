@@ -393,24 +393,9 @@ class FloatingToast:
 
 class AutoDetectBubble:
     _active = None
-    _hooks = []
 
     @staticmethod
     def show(word, candidate, on_accept_callback):
-        # Register suppress hooks for Shift (Right Shift, Left Shift, Shift) and Tab
-        AutoDetectBubble._clear_hooks()
-
-        def _on_accepted():
-            AutoDetectBubble.hide()
-            on_accept_callback()
-
-        for k in ['right shift', 'left shift', 'shift', 'tab']:
-            try:
-                hk = keyboard.add_hotkey(k, _on_accepted, suppress=True)
-                AutoDetectBubble._hooks.append(hk)
-            except Exception:
-                pass
-
         def _run():
             try:
                 if AutoDetectBubble._active:
@@ -428,8 +413,8 @@ class AutoDetectBubble:
 
                 sw = bubble.winfo_screenwidth()
                 sh = bubble.winfo_screenheight()
-                w = 350
-                h = 52
+                w = 360
+                h = 56
                 x = sw - w - 24
                 y = sh - h - 160
                 bubble.geometry(f"{w}x{h}+{x}+{y}")
@@ -437,7 +422,7 @@ class AutoDetectBubble:
                 border = tk.Frame(bubble, bg="#38BDF8", padx=1, pady=1)
                 border.pack(fill=tk.BOTH, expand=True)
 
-                inner = tk.Frame(border, bg="#0F172A", padx=10, pady=6)
+                inner = tk.Frame(border, bg="#0F172A", padx=12, pady=6)
                 inner.pack(fill=tk.BOTH, expand=True)
 
                 right_box = tk.Frame(inner, bg="#0F172A")
@@ -452,23 +437,38 @@ class AutoDetectBubble:
                     bg="#0F172A"
                 ).pack(anchor="e")
 
+                tk.Label(
+                    right_box,
+                    text="انقر هنا أو اضغط الاختصار للتطبيق",
+                    font=("Segoe UI", 7),
+                    fg="#94A3B8",
+                    bg="#0F172A"
+                ).pack(anchor="e")
+
                 left_box = tk.Frame(inner, bg="#0F172A")
                 left_box.pack(side=tk.LEFT)
 
                 accept_btn = tk.Label(
                     left_box,
-                    text="اضغط Shift للتطبيق ⇧",
+                    text="✨ تطبيق فوري",
                     font=("Segoe UI", 8, "bold"),
-                    fg="#F8FAFC",
-                    bg="#1E293B",
-                    padx=8,
-                    pady=3,
+                    fg="#FFFFFF",
+                    bg="#2563EB",
+                    padx=10,
+                    pady=4,
                     cursor="hand2"
                 )
                 accept_btn.pack(side=tk.LEFT)
-                accept_btn.bind("<Button-1>", lambda e: (AutoDetectBubble.hide(), on_accept_callback()))
 
-                bubble.after(3500, lambda: AutoDetectBubble.hide())
+                def _do_accept(e=None):
+                    AutoDetectBubble.hide()
+                    on_accept_callback()
+
+                accept_btn.bind("<Button-1>", _do_accept)
+                inner.bind("<Button-1>", _do_accept)
+                right_box.bind("<Button-1>", _do_accept)
+
+                bubble.after(4500, lambda: AutoDetectBubble.hide())
                 bubble.mainloop()
             except Exception:
                 pass
@@ -476,17 +476,7 @@ class AutoDetectBubble:
         threading.Thread(target=_run, daemon=True).start()
 
     @staticmethod
-    def _clear_hooks():
-        for hk in AutoDetectBubble._hooks:
-            try:
-                keyboard.remove_hotkey(hk)
-            except Exception:
-                pass
-        AutoDetectBubble._hooks = []
-
-    @staticmethod
     def hide():
-        AutoDetectBubble._clear_hooks()
         if AutoDetectBubble._active:
             try:
                 AutoDetectBubble._active.destroy()
@@ -963,41 +953,68 @@ class KeyboardFixerApp:
             return
         try:
             name = (event.name or "").lower()
-            if name == 'space':
-                typed = "".join(self.typed_buffer).strip()
-                self.typed_buffer = []
-                if len(typed) >= 3:
-                    cand = fix_text(typed)
-                    if cand and cand != typed:
-                        self._last_detected_pair = (typed, cand)
-                        AutoDetectBubble.show(typed, cand, self._accept_autodetect)
-            elif name in ['shift', 'left shift', 'right shift', 'tab']:
-                if self._last_detected_pair and AutoDetectBubble._active:
-                    self._accept_autodetect()
-            elif name in ['escape', 'esc']:
-                AutoDetectBubble.hide()
-            elif name == 'backspace':
+
+            if name == 'backspace':
                 if self.typed_buffer:
                     self.typed_buffer.pop()
+                return
+
+            if name in ['escape', 'esc']:
+                AutoDetectBubble.hide()
+                return
+
+            char = None
+            if name == 'space':
+                char = ' '
             elif len(name) == 1 and not (keyboard.is_pressed('ctrl') or keyboard.is_pressed('alt')):
-                if AutoDetectBubble._active:
-                    AutoDetectBubble.hide()
-                self.typed_buffer.append(name)
-                if len(self.typed_buffer) > 25:
+                char = name
+
+            if char is not None:
+                self.typed_buffer.append(char)
+                if len(self.typed_buffer) > 40:
                     self.typed_buffer.pop(0)
+
+                # Check immediately on delimiters or word length
+                if char in [' ', ';', '.', ',', '!', '?'] or len(self.typed_buffer) >= 3:
+                    self._check_autodetect_buffer()
         except Exception:
             pass
+
+    def _check_autodetect_buffer(self):
+        full_text = "".join(self.typed_buffer).strip()
+        if len(full_text) < 3:
+            return
+
+        # 1. Check full buffer (e.g. ";dt phg;" or "mar7aba keefak")
+        cand = fix_text(full_text)
+        if cand and cand != full_text:
+            self._last_detected_pair = (full_text, cand)
+            AutoDetectBubble.show(full_text, cand, self._accept_autodetect)
+            return
+
+        # 2. Check the last word in buffer (e.g. "hello ;dt")
+        words = full_text.split()
+        if words:
+            last = words[-1].strip(";,.")
+            if len(last) >= 3:
+                cw = fix_text(last)
+                if cw and cw != last:
+                    self._last_detected_pair = (last, cw)
+                    AutoDetectBubble.show(last, cw, self._accept_autodetect)
 
     def _accept_autodetect(self):
         if not self._last_detected_pair:
             return
         orig, cand = self._last_detected_pair
         self._last_detected_pair = None
+        self.typed_buffer = []
         AutoDetectBubble.hide()
+        self._do_typed_replacement(orig, cand)
 
+    def _do_typed_replacement(self, orig, cand):
         def _do_replace():
             time.sleep(0.04)
-            erase_count = len(orig) + 1
+            erase_count = len(orig)
             for _ in range(erase_count):
                 user32.keybd_event(0x08, 0, 0, 0)
                 user32.keybd_event(0x08, 0, 0x0002, 0)
@@ -1095,6 +1112,14 @@ class KeyboardFixerApp:
                 copied = get_clipboard_text(timeout=0.3)
 
             if not copied:
+                if self._last_detected_pair:
+                    orig, cand = self._last_detected_pair
+                    self._last_detected_pair = None
+                    self.typed_buffer = []
+                    AutoDetectBubble.hide()
+                    self._do_typed_replacement(orig, cand)
+                    return
+
                 if saved_clip:
                     pyperclip.copy(saved_clip)
                 FloatingToast.show("الرجاء تظليل النص أولاً ثم ضغط الاختصار", "تنبيه ⚠️")
