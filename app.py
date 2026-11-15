@@ -393,9 +393,22 @@ class FloatingToast:
 
 class AutoDetectBubble:
     _active = None
+    _tab_hook = None
 
     @staticmethod
     def show(word, candidate, on_accept_callback):
+        # Register suppress hook for Tab so OS NEVER navigates focus or buttons!
+        AutoDetectBubble._clear_tab_hook()
+
+        def _on_tab_pressed():
+            AutoDetectBubble.hide()
+            on_accept_callback()
+
+        try:
+            AutoDetectBubble._tab_hook = keyboard.add_hotkey('tab', _on_tab_pressed, suppress=True)
+        except Exception:
+            pass
+
         def _run():
             try:
                 if AutoDetectBubble._active:
@@ -451,7 +464,7 @@ class AutoDetectBubble:
                     cursor="hand2"
                 )
                 tab_btn.pack(side=tk.LEFT)
-                tab_btn.bind("<Button-1>", lambda e: on_accept_callback())
+                tab_btn.bind("<Button-1>", lambda e: (AutoDetectBubble.hide(), on_accept_callback()))
 
                 bubble.after(3500, lambda: AutoDetectBubble.hide())
                 bubble.mainloop()
@@ -461,7 +474,17 @@ class AutoDetectBubble:
         threading.Thread(target=_run, daemon=True).start()
 
     @staticmethod
+    def _clear_tab_hook():
+        if AutoDetectBubble._tab_hook:
+            try:
+                keyboard.remove_hotkey(AutoDetectBubble._tab_hook)
+            except Exception:
+                pass
+            AutoDetectBubble._tab_hook = None
+
+    @staticmethod
     def hide():
+        AutoDetectBubble._clear_tab_hook()
         if AutoDetectBubble._active:
             try:
                 AutoDetectBubble._active.destroy()
@@ -558,8 +581,17 @@ class KeyboardFixerApp:
         brand_box = tk.Frame(header, bg=self.COLOR_BG)
         brand_box.pack(side=tk.RIGHT)
 
+        if hasattr(self, 'logo_photo') and self.logo_photo:
+            try:
+                img_raw = Image.open(get_resource_path("app_icon.png")).resize((50, 50), Image.Resampling.LANCZOS)
+                self.logo_head = ImageTk.PhotoImage(img_raw)
+                logo_lbl = tk.Label(brand_box, image=self.logo_head, bg=self.COLOR_BG)
+                logo_lbl.pack(side=tk.RIGHT, padx=(12, 0))
+            except Exception:
+                pass
+
         text_col = tk.Frame(brand_box, bg=self.COLOR_BG)
-        text_col.pack(side=tk.RIGHT, padx=(0, 10))
+        text_col.pack(side=tk.RIGHT, padx=(0, 4))
 
         title_lbl = tk.Label(
             text_col,
@@ -578,15 +610,6 @@ class KeyboardFixerApp:
             bg=self.COLOR_BG
         )
         sub_lbl.pack(anchor="e")
-
-        if hasattr(self, 'logo_photo') and self.logo_photo:
-            try:
-                img_raw = Image.open(get_resource_path("app_icon.png")).resize((46, 46), Image.Resampling.LANCZOS)
-                self.logo_head = ImageTk.PhotoImage(img_raw)
-                logo_lbl = tk.Label(brand_box, image=self.logo_head, bg=self.COLOR_BG)
-                logo_lbl.pack(side=tk.RIGHT)
-            except Exception:
-                pass
 
         # ----------------- 2. MAIN CONTAINER -----------------
         main_box = tk.Frame(self.root, bg=self.COLOR_BG, padx=26, pady=4)
@@ -946,13 +969,14 @@ class KeyboardFixerApp:
                     if cand and cand != typed:
                         self._last_detected_pair = (typed, cand)
                         AutoDetectBubble.show(typed, cand, self._accept_autodetect)
-            elif name == 'tab':
-                if self._last_detected_pair and AutoDetectBubble._active:
-                    self._accept_autodetect()
+            elif name in ['escape', 'esc']:
+                AutoDetectBubble.hide()
             elif name == 'backspace':
                 if self.typed_buffer:
                     self.typed_buffer.pop()
             elif len(name) == 1 and not (keyboard.is_pressed('ctrl') or keyboard.is_pressed('alt')):
+                if AutoDetectBubble._active:
+                    AutoDetectBubble.hide()
                 self.typed_buffer.append(name)
                 if len(self.typed_buffer) > 25:
                     self.typed_buffer.pop(0)
@@ -967,12 +991,13 @@ class KeyboardFixerApp:
         AutoDetectBubble.hide()
 
         def _do_replace():
+            time.sleep(0.04)
             erase_count = len(orig) + 1
             for _ in range(erase_count):
                 user32.keybd_event(0x08, 0, 0, 0)
                 user32.keybd_event(0x08, 0, 0x0002, 0)
                 time.sleep(0.01)
-            time.sleep(0.03)
+            time.sleep(0.04)
             pyperclip.copy(cand + " ")
             send_paste()
             play_soft_chime(self.sound_var.get())
