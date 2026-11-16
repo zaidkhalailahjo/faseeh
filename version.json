@@ -1,7 +1,6 @@
 {
   "version": "1.8.0",
-  "active_users": 14,
-  "total_users": 128,
+  "users_source": "github_releases_api",
   "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe?v=1.8.0",
-  "release_notes": "1. ميزة التصحيح الفوري الاستباقي بمجرد تحديد الكل (Ctrl + A).\n2. عرض عدد مستخدمي فصيح الحاليين والنشطين مباشرة في بطاقات الإحصائيات.\n3. تحسين استقرار وسرعة محرك الكيبورد.\n4. استرجاع أيقونة الريشة الكلاسيكية الفاخرة."
+  "release_notes": "1. ميزة التصحيح الفوري الاستباقي بمجرد تحديد الكل (Ctrl + A).\n2. عرض إحصائيات التنزيلات الحقيقية والموثقة رسمياً من GitHub Releases دون أي أرقام عشوائية.\n3. تحسين استقرار وسرعة محرك الكيبورد.\n4. الحفاظ على أيقونة الريشة الكلاسيكية الفاخرة."
 }

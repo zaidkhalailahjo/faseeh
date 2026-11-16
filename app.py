@@ -78,8 +78,7 @@ def load_user_data():
         "sound_enabled": True,
         "autodetect_enabled": True,
         "ctrla_autofix": True,
-        "active_users": 14,
-        "total_users": 128,
+        "real_downloads": 2,
         "preferred_hotkey": "Ctrl + Shift + A"
     }
     if os.path.exists(DATA_FILE):
@@ -98,6 +97,24 @@ def save_user_data(data):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+
+
+def fetch_real_github_downloads():
+    try:
+        req = urllib.request.Request(
+            "https://api.github.com/repos/zaidkhalailahjo/faseeh/releases",
+            headers={"User-Agent": "Faseeh-Real-Tracker"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            releases = json.loads(resp.read().decode("utf-8"))
+            total_dl = sum(
+                asset.get("download_count", 0)
+                for rel in releases
+                for asset in rel.get("assets", [])
+            )
+            return total_dl
+    except Exception:
+        return None
 
 
 def set_autostart(enable: bool):
@@ -509,8 +526,7 @@ class KeyboardFixerApp:
         self.user_data = load_user_data()
         self.rescues_count = self.user_data.get("rescues_count", 0)
         self.seconds_saved = self.user_data.get("seconds_saved", 0.0)
-        self.active_users = self.user_data.get("active_users", 14)
-        self.total_users = self.user_data.get("total_users", 128)
+        self.real_downloads = self.user_data.get("real_downloads", 2)
 
         self.typed_buffer = []
         self._last_detected_pair = None
@@ -534,6 +550,7 @@ class KeyboardFixerApp:
         if self.user_data.get("autostart", True) and not is_autostart_enabled():
             set_autostart(True)
 
+        self.root.after(1500, lambda: threading.Thread(target=self._fetch_real_community_stats, daemon=True).start())
         self.root.after(4000, lambda: threading.Thread(target=self._check_update_task, args=(False,), daemon=True).start())
 
     def _apply_icons(self):
@@ -646,20 +663,20 @@ class KeyboardFixerApp:
         self.c2_val.pack(anchor="center", pady=(5, 2))
         tk.Label(c2, text="ساعات • دقائق • ثواني", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
-        # Card 3: Active Users & Community
+        # Card 3: Real GitHub Community & Downloads
         c3 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
         c3.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
 
         tk.Label(c3, text="المستخدمون 👥", font=("Segoe UI", 9, "bold"), fg=self.COLOR_INDIGO, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c3_val = tk.Label(
             c3,
-            text=f"{self.active_users} نشط",
+            text=f"{self.real_downloads} تنزيل",
             font=("Segoe UI", 16, "bold"),
             fg=self.COLOR_TEXT_MAIN,
             bg=self.COLOR_SURFACE
         )
         self.c3_val.pack(anchor="center", pady=(4, 2))
-        self.c3_sub = tk.Label(c3, text=f"+{self.total_users} مستخدم 🟢", font=("Segoe UI", 8), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE)
+        self.c3_sub = tk.Label(c3, text="رسمي من GitHub 🟢", font=("Segoe UI", 8), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE)
         self.c3_sub.pack(anchor="center")
 
         # ----------------- 4. SHORTCUT PILLS -----------------
@@ -1144,14 +1161,22 @@ class KeyboardFixerApp:
         self.c1_val.config(text=f"{self.rescues_count} مرة")
         self.c2_val.config(text=format_time_saved(self.seconds_saved))
 
-    def _update_users_display(self, active, total):
+    def _update_users_display(self, real_dl):
         try:
             if hasattr(self, 'c3_val') and self.c3_val:
-                self.c3_val.config(text=f"{active} نشط")
+                self.c3_val.config(text=f"{real_dl} تنزيل")
             if hasattr(self, 'c3_sub') and self.c3_sub:
-                self.c3_sub.config(text=f"+{total} مستخدم 🟢")
+                self.c3_sub.config(text="رسمي من GitHub 🟢")
         except Exception:
             pass
+
+    def _fetch_real_community_stats(self):
+        real_dl = fetch_real_github_downloads()
+        if real_dl is not None:
+            self.real_downloads = real_dl
+            self.user_data["real_downloads"] = real_dl
+            save_user_data(self.user_data)
+            self.root.after(0, lambda: self._update_users_display(self.real_downloads))
 
     def _toggle_service(self):
         self.is_active = not self.is_active
@@ -1272,18 +1297,13 @@ class KeyboardFixerApp:
             download_url = data.get("download_url", "")
             notes = data.get("release_notes", "تحسينات عامة وإصلاحات.")
 
-            # Update community users count from GitHub remote version data
-            remote_active = data.get("active_users")
-            remote_total = data.get("total_users")
-            if remote_active is not None or remote_total is not None:
-                if remote_active is not None:
-                    self.active_users = remote_active
-                    self.user_data["active_users"] = remote_active
-                if remote_total is not None:
-                    self.total_users = remote_total
-                    self.user_data["total_users"] = remote_total
+            # Fetch 100% REAL downloads from GitHub Releases API
+            real_dl = fetch_real_github_downloads()
+            if real_dl is not None:
+                self.real_downloads = real_dl
+                self.user_data["real_downloads"] = real_dl
                 save_user_data(self.user_data)
-                self.root.after(0, lambda: self._update_users_display(self.active_users, self.total_users))
+                self.root.after(0, lambda: self._update_users_display(self.real_downloads))
 
             if parse_version(remote_ver_str) > parse_version(CURRENT_VERSION):
                 self.root.after(0, lambda: self._prompt_update_modal(remote_ver_str, download_url, notes))
