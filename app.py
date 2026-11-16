@@ -859,7 +859,7 @@ class KeyboardFixerApp:
 
         # ----------------- 6.5 STATUS / COMMUNITY BAR -----------------
         status_bar = tk.Frame(main_box, bg=self.COLOR_BG)
-        status_bar.pack(fill=tk.X, pady=(0, 12))
+        status_bar.pack(fill=tk.X, pady=(0, 10))
 
         self.users_lbl = tk.Label(
             status_bar,
@@ -869,15 +869,6 @@ class KeyboardFixerApp:
             bg=self.COLOR_BG
         )
         self.users_lbl.pack(side=tk.RIGHT)
-
-        users_hint = tk.Label(
-            status_bar,
-            text="(إحصائيات حقيقية من GitHub Releases 🟢)",
-            font=("Segoe UI", 8),
-            fg=self.COLOR_TEXT_MUTED,
-            bg=self.COLOR_BG
-        )
-        users_hint.pack(side=tk.RIGHT, padx=(0, 8))
 
         # ----------------- 7. BOTTOM BAR -----------------
         bottom_bar = tk.Frame(main_box, bg=self.COLOR_BG)
