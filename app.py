@@ -595,9 +595,10 @@ class KeyboardFixerApp:
         brand_box = tk.Frame(header, bg=self.COLOR_BG)
         brand_box.pack(side=tk.RIGHT)
 
-        if hasattr(self, 'logo_photo') and self.logo_photo:
+        png_p = get_resource_path("app_icon.png")
+        if os.path.exists(png_p):
             try:
-                img_raw = Image.open(get_resource_path("app_icon.png")).resize((50, 50), Image.Resampling.LANCZOS)
+                img_raw = Image.open(png_p).resize((50, 50), Image.Resampling.LANCZOS)
                 self.logo_head = ImageTk.PhotoImage(img_raw)
                 logo_lbl = tk.Label(brand_box, image=self.logo_head, bg=self.COLOR_BG)
                 logo_lbl.pack(side=tk.RIGHT, padx=(12, 0))
@@ -629,55 +630,39 @@ class KeyboardFixerApp:
         main_box = tk.Frame(self.root, bg=self.COLOR_BG, padx=26, pady=4)
         main_box.pack(fill=tk.BOTH, expand=True)
 
-        # ----------------- 3. BENTO STATS CARDS -----------------
+        # ----------------- 3. BENTO STATS CARDS (2 Cards) -----------------
         stats_frame = tk.Frame(main_box, bg=self.COLOR_BG)
         stats_frame.pack(fill=tk.X, pady=(0, 16))
 
         # Card 1: Rescues
-        c1 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
-        c1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        c1 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=14, pady=14)
+        c1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 6))
 
-        tk.Label(c1, text="مرات الإنقاذ 🛡️", font=("Segoe UI", 9, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_SURFACE).pack(anchor="center")
+        tk.Label(c1, text="مرات الإنقاذ 🛡️", font=("Segoe UI", 10, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c1_val = tk.Label(
             c1,
             text=f"{self.rescues_count} مرة",
-            font=("Segoe UI", 16, "bold"),
+            font=("Segoe UI", 18, "bold"),
             fg=self.COLOR_TEXT_MAIN,
             bg=self.COLOR_SURFACE
         )
-        self.c1_val.pack(anchor="center", pady=(4, 2))
+        self.c1_val.pack(anchor="center", pady=(5, 2))
         tk.Label(c1, text="تصحيح فوري دون مسح", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
         # Card 2: Time Saved
-        c2 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
-        c2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 5))
+        c2 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=14, pady=14)
+        c2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(6, 0))
 
-        tk.Label(c2, text="الوقت الموفّر ⏱️", font=("Segoe UI", 9, "bold"), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE).pack(anchor="center")
+        tk.Label(c2, text="الوقت الموفّر ⏱️", font=("Segoe UI", 10, "bold"), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c2_val = tk.Label(
             c2,
             text=format_time_saved(self.seconds_saved),
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", 14, "bold"),
             fg=self.COLOR_TEXT_MAIN,
             bg=self.COLOR_SURFACE
         )
-        self.c2_val.pack(anchor="center", pady=(5, 2))
+        self.c2_val.pack(anchor="center", pady=(6, 2))
         tk.Label(c2, text="ساعات • دقائق • ثواني", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
-
-        # Card 3: Real GitHub Community & Downloads
-        c3 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
-        c3.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
-
-        tk.Label(c3, text="المستخدمون 👥", font=("Segoe UI", 9, "bold"), fg=self.COLOR_INDIGO, bg=self.COLOR_SURFACE).pack(anchor="center")
-        self.c3_val = tk.Label(
-            c3,
-            text=f"{self.real_downloads} تنزيل",
-            font=("Segoe UI", 16, "bold"),
-            fg=self.COLOR_TEXT_MAIN,
-            bg=self.COLOR_SURFACE
-        )
-        self.c3_val.pack(anchor="center", pady=(4, 2))
-        self.c3_sub = tk.Label(c3, text="رسمي من GitHub 🟢", font=("Segoe UI", 8), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE)
-        self.c3_sub.pack(anchor="center")
 
         # ----------------- 4. SHORTCUT PILLS -----------------
         shortcuts_card = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=14)
@@ -871,6 +856,28 @@ class KeyboardFixerApp:
         )
         hotkey_dropdown.pack(side=tk.RIGHT)
         hotkey_dropdown.bind("<<ComboboxSelected>>", self._on_hotkey_changed)
+
+        # ----------------- 6.5 STATUS / COMMUNITY BAR -----------------
+        status_bar = tk.Frame(main_box, bg=self.COLOR_BG)
+        status_bar.pack(fill=tk.X, pady=(0, 12))
+
+        self.users_lbl = tk.Label(
+            status_bar,
+            text=f"المستخدمون : {self.real_downloads}",
+            font=("Segoe UI", 9, "bold"),
+            fg=self.COLOR_CYAN,
+            bg=self.COLOR_BG
+        )
+        self.users_lbl.pack(side=tk.RIGHT)
+
+        users_hint = tk.Label(
+            status_bar,
+            text="(إحصائيات حقيقية من GitHub Releases 🟢)",
+            font=("Segoe UI", 8),
+            fg=self.COLOR_TEXT_MUTED,
+            bg=self.COLOR_BG
+        )
+        users_hint.pack(side=tk.RIGHT, padx=(0, 8))
 
         # ----------------- 7. BOTTOM BAR -----------------
         bottom_bar = tk.Frame(main_box, bg=self.COLOR_BG)
@@ -1163,10 +1170,8 @@ class KeyboardFixerApp:
 
     def _update_users_display(self, real_dl):
         try:
-            if hasattr(self, 'c3_val') and self.c3_val:
-                self.c3_val.config(text=f"{real_dl} تنزيل")
-            if hasattr(self, 'c3_sub') and self.c3_sub:
-                self.c3_sub.config(text="رسمي من GitHub 🟢")
+            if hasattr(self, 'users_lbl') and self.users_lbl:
+                self.users_lbl.config(text=f"المستخدمون : {real_dl}")
         except Exception:
             pass
 
