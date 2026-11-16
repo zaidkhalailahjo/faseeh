@@ -24,7 +24,8 @@ from PIL import Image, ImageTk
 import pyperclip
 import keyboard
 
-from converter import fix_text, is_mostly_arabic, is_inverted_en_to_ar
+from converter import fix_text, is_mostly_arabic, is_inverted_en_to_ar, convert_en_to_ar
+from franco import is_franco_text, convert_franco_to_arabic
 
 CURRENT_VERSION = "1.8.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
@@ -1073,9 +1074,20 @@ class KeyboardFixerApp:
                     pyperclip.copy(saved_clip)
                 return
 
+            # CRITICAL RULE: If text is already Arabic, NEVER touch it on Ctrl+A!
+            if any('\u0600' <= c <= '\u06FF' or c in '،؛؟' for c in copied):
+                if saved_clip:
+                    pyperclip.copy(saved_clip)
+                return
+
             if is_inverted_en_to_ar(copied):
-                fixed = fix_text(copied)
-                if fixed and fixed != copied:
+                if is_franco_text(copied):
+                    fixed = convert_franco_to_arabic(copied)
+                else:
+                    fixed = convert_en_to_ar(copied)
+
+                # STRICT RULE: Must be converted to Arabic and different from original
+                if fixed and fixed != copied and any('\u0600' <= c <= '\u06FF' for c in fixed):
                     pyperclip.copy(fixed)
                     time.sleep(0.04)
                     send_paste()

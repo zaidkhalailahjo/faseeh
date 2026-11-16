@@ -170,60 +170,59 @@ COMMON_ENGLISH_WORDS = {
 }
 
 COMMON_AR_ON_EN = {
-    ';dt', 'phg;', 's,t', 'kj;gl', 'uk', 'lk', 'tqg;', 'ugn', 'td', 'i,', 'i,i',
+    ';dt', 'phg;', 'ohg;', 's,t', 'kj;gl', 'uk', 'lk', 'tqg;', 'ugn', 'td', 'i,', 'i,i',
     'gh', 'hk', 'hkh', 'hkj', 'hgsghl', 'ugd;l', 'wfp', 'khul', 'lh', ';g',
     'f;g', 'hggi', 'lvpfh', 'pvt', 'ptv', 'sghl', 'hpvn', 'auv', ';hk', ';hkj',
-    ';dt;', 'phg;', 'au,v', 'lh`h', 'gdk'
+    ';dt;', 'phg;', 'au,v', 'lh`h', 'gdk', 'a,', 'dh', 'pfdfd', 'hofhv;', 'hofhv'
 }
 
 def is_inverted_en_to_ar(text: str) -> bool:
-    """Determine if text typed in English layout is meant to be Arabic."""
+    """
+    Determine strictly if text typed in English layout is meant to be Arabic.
+    Never returns True for Arabic text, and never returns True for standard English.
+    """
     if not text or not text.strip():
         return False
 
-    # 1. Franco-Arabic check
+    # 1. If text has ANY Arabic letters or Arabic punctuation, NEVER convert back on Ctrl+A
+    if any('\u0600' <= c <= '\u06FF' or c in '،؛؟' for c in text):
+        return False
+
+    # 2. Franco-Arabic check
     if is_franco_text(text):
         return True
 
-    ar_letters = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
-    en_letters = sum(1 for c in text if 'a' <= c.lower() <= 'z')
-
-    # If text is already mostly Arabic, don't auto-convert
-    if ar_letters > en_letters:
-        return False
-
-    # If mixed with Arabic letters (like ';dt ... ي ...')
-    if ar_letters > 0 and en_letters > 0:
-        return True
-
-    # 2. Check for typical Arabic QWERTY layout markers
-    if ';' in text:
-        return True
-    if re.search(r'[a-zA-Z],[a-zA-Z]', text):
-        return True
-
-    # 3. Check against common English words vs Arabic-on-QWERTY words
     words = [w.lower().strip(".,!?:;\"'()[]{}") for w in text.split() if w.strip(".,!?:;\"'()[]{}")]
     if not words:
         return False
 
-    ar_matches = sum(1 for w in words if w in COMMON_AR_ON_EN)
+    # 3. English words check - if recognized English words are present, protect from conversion
     en_matches = sum(1 for w in words if w in COMMON_ENGLISH_WORDS)
-
-    if ar_matches > 0:
-        return True
-
-    if en_matches > 0 and en_matches >= len(words) * 0.5:
+    if en_matches > 0 and en_matches >= len(words) * 0.4:
         return False
 
-    impossible_en = {'kj', 'phg', 'hgs', 'ugd', 's,t', ';dt', 'tqg', 'pvt', 'ptv'}
+    # 4. Check for semicolon in words (Arabic Kaf e.g. ;dt, phg;, ohg;, hofhv;)
+    if ';' in text:
+        for w in text.split():
+            if ';' in w and any(c.isalpha() for c in w):
+                return True
+
+    # 5. Check for comma attached to letters (Arabic Waw, e.g. 'a,', 's,t')
+    for w in text.split():
+        if re.search(r'[a-zA-Z],[a-zA-Z]|[a-zA-Z],|^,[a-zA-Z]', w):
+            return True
+
+    # 6. Check for known AR-on-EN words (e.g. 'a,', 'dh', 'pfdfd', 'hofhv;')
+    raw_words = [w.lower().strip(" ") for w in text.split()]
+    for rw in raw_words:
+        if rw in COMMON_AR_ON_EN:
+            return True
+
+    # 7. Impossible English bigrams/trigrams
+    impossible_en = {'kj', 'phg', 'ohg', 'hgs', 'ugd', 's,t', ';dt', 'tqg', 'pvt', 'ptv', 'pfdfd', 'hofhv', 'fdfd'}
     for imp in impossible_en:
         if imp in text.lower():
             return True
-
-    fixed = convert_en_to_ar(text)
-    if is_mostly_arabic(fixed):
-        return True
 
     return False
 
