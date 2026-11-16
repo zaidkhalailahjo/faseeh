@@ -23,7 +23,10 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import pyperclip
 import keyboard
+import io
+import base64
 
+from app_icon_data import FEATHER_ICON_B64
 from converter import fix_text, is_mostly_arabic, is_inverted_en_to_ar, convert_en_to_ar
 from franco import is_franco_text, convert_franco_to_arabic
 
@@ -555,24 +558,20 @@ class KeyboardFixerApp:
         self.root.after(4000, lambda: threading.Thread(target=self._check_update_task, args=(False,), daemon=True).start())
 
     def _apply_icons(self):
-        ico_file = get_resource_path("app_icon.ico")
-        png_file = get_resource_path("app_icon.png")
+        try:
+            raw_bytes = base64.b64decode(FEATHER_ICON_B64)
+            img_pil = Image.open(io.BytesIO(raw_bytes))
+            self.logo_photo = ImageTk.PhotoImage(img_pil)
+            self.root.iconphoto(True, self.logo_photo)
+        except Exception:
+            self.logo_photo = None
 
+        ico_file = get_resource_path("app_icon.ico")
         if os.path.exists(ico_file):
             try:
                 self.root.iconbitmap(ico_file)
             except Exception:
                 pass
-
-        if os.path.exists(png_file):
-            try:
-                icon_img = ImageTk.PhotoImage(file=png_file)
-                self.root.iconphoto(True, icon_img)
-                self.logo_photo = icon_img
-            except Exception:
-                self.logo_photo = None
-        else:
-            self.logo_photo = None
 
     def _setup_ui(self):
         self.root.configure(bg=self.COLOR_BG)
@@ -596,15 +595,14 @@ class KeyboardFixerApp:
         brand_box = tk.Frame(header, bg=self.COLOR_BG)
         brand_box.pack(side=tk.RIGHT)
 
-        png_p = get_resource_path("app_icon.png")
-        if os.path.exists(png_p):
-            try:
-                img_raw = Image.open(png_p).resize((50, 50), Image.Resampling.LANCZOS)
-                self.logo_head = ImageTk.PhotoImage(img_raw)
-                logo_lbl = tk.Label(brand_box, image=self.logo_head, bg=self.COLOR_BG)
-                logo_lbl.pack(side=tk.RIGHT, padx=(12, 0))
-            except Exception:
-                pass
+        try:
+            raw_bytes = base64.b64decode(FEATHER_ICON_B64)
+            img_raw = Image.open(io.BytesIO(raw_bytes)).resize((52, 52), Image.Resampling.LANCZOS)
+            self.logo_head = ImageTk.PhotoImage(img_raw)
+            logo_lbl = tk.Label(brand_box, image=self.logo_head, bg=self.COLOR_BG)
+            logo_lbl.pack(side=tk.RIGHT, padx=(12, 0))
+        except Exception:
+            pass
 
         text_col = tk.Frame(brand_box, bg=self.COLOR_BG)
         text_col.pack(side=tk.RIGHT, padx=(0, 4))
