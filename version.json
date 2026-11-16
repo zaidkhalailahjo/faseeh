@@ -1,5 +1,7 @@
 {
-  "version": "1.7.0",
-  "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe?v=1.7.0",
-  "release_notes": "1. تحويل الفرانكو والعربيزي إلى عربي فصيح.\n2. بالون التصحيح التلقائي الاستباقي (Auto-Detect) مع تطبيق بضغطة Tab.\n3. نغمة تفاعلية ناعمة ومرضية (Audio Juice).\n4. تخصيص الاختصار المفضل من الواجهة مباشرة.\n5. نظام كسر كاش التحديث لضمان تثبيت أحدث إصدار فوراً وبأقصى سرعة."
+  "version": "1.8.0",
+  "active_users": 14,
+  "total_users": 128,
+  "download_url": "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/dist/Faseeh-ArabicKeyFix.exe?v=1.8.0",
+  "release_notes": "1. ميزة التصحيح الفوري الاستباقي بمجرد تحديد الكل (Ctrl + A).\n2. عرض عدد مستخدمي فصيح الحاليين والنشطين مباشرة في بطاقات الإحصائيات.\n3. تحسين استقرار وسرعة محرك الكيبورد.\n4. استرجاع أيقونة الريشة الكلاسيكية الفاخرة."
 }

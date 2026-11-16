@@ -24,14 +24,14 @@ from PIL import Image, ImageTk
 import pyperclip
 import keyboard
 
-from converter import fix_text, is_mostly_arabic
+from converter import fix_text, is_mostly_arabic, is_inverted_en_to_ar
 
-CURRENT_VERSION = "1.7.0"
+CURRENT_VERSION = "1.8.0"
 UPDATE_CHECK_URL = "https://raw.githubusercontent.com/zaidkhalailahjo/faseeh/main/version.json"
 SINGLE_INSTANCE_PORT = 47892
 
 try:
-    myappid = 'faseeh.keyboard.fixer.v1.7.0'
+    myappid = 'faseeh.keyboard.fixer.v1.8.0'
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except Exception:
     pass
@@ -77,6 +77,9 @@ def load_user_data():
         "autostart": True,
         "sound_enabled": True,
         "autodetect_enabled": True,
+        "ctrla_autofix": True,
+        "active_users": 14,
+        "total_users": 128,
         "preferred_hotkey": "Ctrl + Shift + A"
     }
     if os.path.exists(DATA_FILE):
@@ -489,7 +492,7 @@ class KeyboardFixerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("فَصِيح - مصحح الكيبورد الذكي")
-        self.root.geometry("560x675")
+        self.root.geometry("575x700")
         self.root.resizable(False, False)
 
         self.COLOR_BG = "#0B1120"
@@ -506,6 +509,8 @@ class KeyboardFixerApp:
         self.user_data = load_user_data()
         self.rescues_count = self.user_data.get("rescues_count", 0)
         self.seconds_saved = self.user_data.get("seconds_saved", 0.0)
+        self.active_users = self.user_data.get("active_users", 14)
+        self.total_users = self.user_data.get("total_users", 128)
 
         self.typed_buffer = []
         self._last_detected_pair = None
@@ -612,14 +617,14 @@ class KeyboardFixerApp:
         stats_frame.pack(fill=tk.X, pady=(0, 16))
 
         # Card 1: Rescues
-        c1 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=16, pady=14)
-        c1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 8))
+        c1 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
+        c1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
 
         tk.Label(c1, text="مرات الإنقاذ 🛡️", font=("Segoe UI", 9, "bold"), fg=self.COLOR_CYAN, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c1_val = tk.Label(
             c1,
             text=f"{self.rescues_count} مرة",
-            font=("Segoe UI", 20, "bold"),
+            font=("Segoe UI", 16, "bold"),
             fg=self.COLOR_TEXT_MAIN,
             bg=self.COLOR_SURFACE
         )
@@ -627,19 +632,35 @@ class KeyboardFixerApp:
         tk.Label(c1, text="تصحيح فوري دون مسح", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
 
         # Card 2: Time Saved
-        c2 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=16, pady=14)
-        c2.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(8, 0))
+        c2 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
+        c2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 5))
 
         tk.Label(c2, text="الوقت الموفّر ⏱️", font=("Segoe UI", 9, "bold"), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE).pack(anchor="center")
         self.c2_val = tk.Label(
             c2,
             text=format_time_saved(self.seconds_saved),
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 12, "bold"),
             fg=self.COLOR_TEXT_MAIN,
             bg=self.COLOR_SURFACE
         )
-        self.c2_val.pack(anchor="center", pady=(6, 2))
+        self.c2_val.pack(anchor="center", pady=(5, 2))
         tk.Label(c2, text="ساعات • دقائق • ثواني", font=("Segoe UI", 8), fg=self.COLOR_TEXT_MUTED, bg=self.COLOR_SURFACE).pack(anchor="center")
+
+        # Card 3: Active Users & Community
+        c3 = tk.Frame(stats_frame, bg=self.COLOR_SURFACE, padx=10, pady=12)
+        c3.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
+
+        tk.Label(c3, text="المستخدمون 👥", font=("Segoe UI", 9, "bold"), fg=self.COLOR_INDIGO, bg=self.COLOR_SURFACE).pack(anchor="center")
+        self.c3_val = tk.Label(
+            c3,
+            text=f"{self.active_users} نشط",
+            font=("Segoe UI", 16, "bold"),
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE
+        )
+        self.c3_val.pack(anchor="center", pady=(4, 2))
+        self.c3_sub = tk.Label(c3, text=f"+{self.total_users} مستخدم 🟢", font=("Segoe UI", 8), fg=self.COLOR_EMERALD, bg=self.COLOR_SURFACE)
+        self.c3_sub.pack(anchor="center")
 
         # ----------------- 4. SHORTCUT PILLS -----------------
         shortcuts_card = tk.Frame(main_box, bg=self.COLOR_SURFACE, padx=18, pady=14)
@@ -766,7 +787,7 @@ class KeyboardFixerApp:
 
         # Row 2: Auto-Detect Bubble
         row2 = tk.Frame(settings_strip, bg=self.COLOR_SURFACE)
-        row2.pack(fill=tk.X, pady=(0, 6))
+        row2.pack(fill=tk.X, pady=(0, 4))
 
         self.autodetect_var = tk.BooleanVar(value=self.user_data.get("autodetect_enabled", True))
         autodetect_chk = tk.Checkbutton(
@@ -783,12 +804,31 @@ class KeyboardFixerApp:
         )
         autodetect_chk.pack(side=tk.RIGHT)
 
-        # Row 3: Hotkey Selector
+        # Row 3: Ctrl + A Auto-Fix
         row3 = tk.Frame(settings_strip, bg=self.COLOR_SURFACE)
-        row3.pack(fill=tk.X, pady=(2, 0))
+        row3.pack(fill=tk.X, pady=(0, 6))
+
+        self.ctrla_autofix_var = tk.BooleanVar(value=self.user_data.get("ctrla_autofix", True))
+        ctrla_chk = tk.Checkbutton(
+            row3,
+            text="تصحيح فوري تلقائي عند التحديد بالكامل (Ctrl + A ⚡)",
+            variable=self.ctrla_autofix_var,
+            font=("Segoe UI", 8, "bold"),
+            fg=self.COLOR_TEXT_MAIN,
+            bg=self.COLOR_SURFACE,
+            activebackground=self.COLOR_SURFACE,
+            activeforeground=self.COLOR_CYAN,
+            selectcolor=self.COLOR_SURFACE_LIGHT,
+            command=self._toggle_ctrla_autofix
+        )
+        ctrla_chk.pack(side=tk.RIGHT)
+
+        # Row 4: Hotkey Selector
+        row4 = tk.Frame(settings_strip, bg=self.COLOR_SURFACE)
+        row4.pack(fill=tk.X, pady=(2, 0))
 
         tk.Label(
-            row3,
+            row4,
             text="الاختصار الأساسي:",
             font=("Segoe UI", 8, "bold"),
             fg=self.COLOR_CYAN,
@@ -805,7 +845,7 @@ class KeyboardFixerApp:
         self.selected_hotkey = tk.StringVar(value=self.user_data.get("preferred_hotkey", "Ctrl + Shift + A"))
 
         hotkey_dropdown = ttk.Combobox(
-            row3,
+            row4,
             textvariable=self.selected_hotkey,
             values=self.hotkey_options,
             state="readonly",
@@ -941,6 +981,15 @@ class KeyboardFixerApp:
         else:
             FloatingToast.show("تم إيقاف بالون التصحيح التلقائي", "فَصِيح")
 
+    def _toggle_ctrla_autofix(self):
+        enabled = self.ctrla_autofix_var.get()
+        self.user_data["ctrla_autofix"] = enabled
+        save_user_data(self.user_data)
+        if enabled:
+            FloatingToast.show("تم تفعيل التصحيح الفوري عند التحديد بـ Ctrl+A ⚡", "فَصِيح")
+        else:
+            FloatingToast.show("تم إيقاف التصحيح عند Ctrl+A", "فَصِيح")
+
     def _on_hotkey_changed(self, event=None):
         selected = self.selected_hotkey.get()
         self.user_data["preferred_hotkey"] = selected
@@ -949,10 +998,19 @@ class KeyboardFixerApp:
         FloatingToast.show(f"تم تفعيل الاختصار المفضل: {selected}", "تخصيص الاختصارات ⌨️")
 
     def _on_key_typed(self, event):
-        if not self.is_active or not self.autodetect_var.get():
+        if not self.is_active:
             return
         try:
             name = (event.name or "").lower()
+
+            # Instant auto-fix on Select All (Ctrl + A)
+            if name == 'a' and keyboard.is_pressed('ctrl') and not (keyboard.is_pressed('shift') or keyboard.is_pressed('alt')):
+                if hasattr(self, 'ctrla_autofix_var') and self.ctrla_autofix_var.get() and not self.is_processing:
+                    threading.Thread(target=self._handle_ctrl_a_autofix, daemon=True).start()
+                return
+
+            if not self.autodetect_var.get():
+                return
 
             if name == 'backspace':
                 if self.typed_buffer:
@@ -977,6 +1035,43 @@ class KeyboardFixerApp:
                 # Check immediately on delimiters or word length
                 if char in [' ', ';', '.', ',', '!', '?'] or len(self.typed_buffer) >= 3:
                     self._check_autodetect_buffer()
+        except Exception:
+            pass
+
+    def _handle_ctrl_a_autofix(self):
+        try:
+            time.sleep(0.08)
+
+            saved_clip = ""
+            try:
+                saved_clip = pyperclip.paste()
+            except Exception:
+                pass
+
+            pyperclip.copy("")
+            time.sleep(0.03)
+            send_copy()
+            copied = get_clipboard_text(timeout=0.25)
+
+            if not copied:
+                if saved_clip:
+                    pyperclip.copy(saved_clip)
+                return
+
+            if is_inverted_en_to_ar(copied):
+                fixed = fix_text(copied)
+                if fixed and fixed != copied:
+                    pyperclip.copy(fixed)
+                    time.sleep(0.04)
+                    send_paste()
+                    play_soft_chime(self.sound_var.get())
+                    self.root.after(0, lambda: self._record_rescue(len(copied)))
+                    preview = (fixed[:32] + "...") if len(fixed) > 32 else fixed
+                    FloatingToast.show(f"تم التصحيح الفوري بـ (Ctrl+A):\n{preview}", "فَصِيح ⚡")
+                    return
+
+            if saved_clip:
+                pyperclip.copy(saved_clip)
         except Exception:
             pass
 
@@ -1048,6 +1143,15 @@ class KeyboardFixerApp:
 
         self.c1_val.config(text=f"{self.rescues_count} مرة")
         self.c2_val.config(text=format_time_saved(self.seconds_saved))
+
+    def _update_users_display(self, active, total):
+        try:
+            if hasattr(self, 'c3_val') and self.c3_val:
+                self.c3_val.config(text=f"{active} نشط")
+            if hasattr(self, 'c3_sub') and self.c3_sub:
+                self.c3_sub.config(text=f"+{total} مستخدم 🟢")
+        except Exception:
+            pass
 
     def _toggle_service(self):
         self.is_active = not self.is_active
@@ -1167,6 +1271,19 @@ class KeyboardFixerApp:
             remote_ver_str = data.get("version", "1.0.0")
             download_url = data.get("download_url", "")
             notes = data.get("release_notes", "تحسينات عامة وإصلاحات.")
+
+            # Update community users count from GitHub remote version data
+            remote_active = data.get("active_users")
+            remote_total = data.get("total_users")
+            if remote_active is not None or remote_total is not None:
+                if remote_active is not None:
+                    self.active_users = remote_active
+                    self.user_data["active_users"] = remote_active
+                if remote_total is not None:
+                    self.total_users = remote_total
+                    self.user_data["total_users"] = remote_total
+                save_user_data(self.user_data)
+                self.root.after(0, lambda: self._update_users_display(self.active_users, self.total_users))
 
             if parse_version(remote_ver_str) > parse_version(CURRENT_VERSION):
                 self.root.after(0, lambda: self._prompt_update_modal(remote_ver_str, download_url, notes))

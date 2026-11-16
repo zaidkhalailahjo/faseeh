@@ -154,6 +154,79 @@ def convert_ar_to_en(text: str) -> str:
 
 from franco import is_franco_text, convert_franco_to_arabic
 
+COMMON_ENGLISH_WORDS = {
+    'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
+    'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+    'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+    'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
+    'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+    'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
+    'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
+    'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
+    'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way',
+    'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
+    'is', 'are', 'was', 'were', 'am', 'been', 'has', 'had', 'hello', 'world', 'test',
+    'function', 'return', 'def', 'class', 'import', 'var', 'const', 'let', 'print'
+}
+
+COMMON_AR_ON_EN = {
+    ';dt', 'phg;', 's,t', 'kj;gl', 'uk', 'lk', 'tqg;', 'ugn', 'td', 'i,', 'i,i',
+    'gh', 'hk', 'hkh', 'hkj', 'hgsghl', 'ugd;l', 'wfp', 'khul', 'lh', ';g',
+    'f;g', 'hggi', 'lvpfh', 'pvt', 'ptv', 'sghl', 'hpvn', 'auv', ';hk', ';hkj',
+    ';dt;', 'phg;', 'au,v', 'lh`h', 'gdk'
+}
+
+def is_inverted_en_to_ar(text: str) -> bool:
+    """Determine if text typed in English layout is meant to be Arabic."""
+    if not text or not text.strip():
+        return False
+
+    # 1. Franco-Arabic check
+    if is_franco_text(text):
+        return True
+
+    ar_letters = sum(1 for c in text if '\u0600' <= c <= '\u06FF')
+    en_letters = sum(1 for c in text if 'a' <= c.lower() <= 'z')
+
+    # If text is already mostly Arabic, don't auto-convert
+    if ar_letters > en_letters:
+        return False
+
+    # If mixed with Arabic letters (like ';dt ... ي ...')
+    if ar_letters > 0 and en_letters > 0:
+        return True
+
+    # 2. Check for typical Arabic QWERTY layout markers
+    if ';' in text:
+        return True
+    if re.search(r'[a-zA-Z],[a-zA-Z]', text):
+        return True
+
+    # 3. Check against common English words vs Arabic-on-QWERTY words
+    words = [w.lower().strip(".,!?:;\"'()[]{}") for w in text.split() if w.strip(".,!?:;\"'()[]{}")]
+    if not words:
+        return False
+
+    ar_matches = sum(1 for w in words if w in COMMON_AR_ON_EN)
+    en_matches = sum(1 for w in words if w in COMMON_ENGLISH_WORDS)
+
+    if ar_matches > 0:
+        return True
+
+    if en_matches > 0 and en_matches >= len(words) * 0.5:
+        return False
+
+    impossible_en = {'kj', 'phg', 'hgs', 'ugd', 's,t', ';dt', 'tqg', 'pvt', 'ptv'}
+    for imp in impossible_en:
+        if imp in text.lower():
+            return True
+
+    fixed = convert_en_to_ar(text)
+    if is_mostly_arabic(fixed):
+        return True
+
+    return False
+
 
 def fix_text(text: str) -> str:
     """
