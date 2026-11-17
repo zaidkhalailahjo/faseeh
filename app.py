@@ -1093,6 +1093,12 @@ class KeyboardFixerApp:
                     self.root.after(0, lambda: self._record_rescue(len(copied)))
                     preview = (fixed[:32] + "...") if len(fixed) > 32 else fixed
                     FloatingToast.show(f"تم التصحيح الفوري بـ (Ctrl+A):\n{preview}", "فَصِيح ⚡")
+                    if saved_clip:
+                        time.sleep(0.12)
+                        try:
+                            pyperclip.copy(saved_clip)
+                        except Exception:
+                            pass
                     return
 
             if saved_clip:
@@ -1133,6 +1139,12 @@ class KeyboardFixerApp:
 
     def _do_typed_replacement(self, orig, cand):
         def _do_replace():
+            saved_clip = ""
+            try:
+                saved_clip = pyperclip.paste()
+            except Exception:
+                pass
+
             time.sleep(0.04)
             erase_count = len(orig)
             for _ in range(erase_count):
@@ -1144,6 +1156,13 @@ class KeyboardFixerApp:
             send_paste()
             play_soft_chime(self.sound_var.get())
             self.root.after(0, lambda: self._record_rescue(len(orig)))
+
+            if saved_clip:
+                time.sleep(0.12)
+                try:
+                    pyperclip.copy(saved_clip)
+                except Exception:
+                    pass
 
         threading.Thread(target=_do_replace, daemon=True).start()
 
@@ -1273,6 +1292,13 @@ class KeyboardFixerApp:
 
                 preview = (fixed[:35] + "...") if len(fixed) > 35 else fixed
                 FloatingToast.show(f"تم التصحيح بنجاح:\n{preview}", "فَصِيح ✨")
+
+                if saved_clip:
+                    time.sleep(0.12)
+                    try:
+                        pyperclip.copy(saved_clip)
+                    except Exception:
+                        pass
             else:
                 FloatingToast.show("النص لا يحتاج إلى تعديل", "فَصِيح")
                 if saved_clip:
